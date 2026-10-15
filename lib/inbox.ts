@@ -28,6 +28,7 @@ export async function send(s: Summary, rows: Answer[]): Promise<{ ok: boolean; s
 const UNTAKEN = 8_000; // a batch no watcher took in this long: no session of the game is open
 const STRANDED = 60_000; // a batch taken this long ago, never read, with no watcher alive: the session it was meant to wake did not wake (or has gone)
 const BEAT = 10_000; // the kit's monitor touches .watching every couple of seconds
+const WORK = 10 * 60_000; // the kit marks .active on every prompt and tool — a session this recently at work takes answers when its turn ends
 
 function alive(pid: number): boolean {
   try { process.kill(pid, 0); return true; } catch (e) { return (e as NodeJS.ErrnoException).code === "EPERM"; }
@@ -50,12 +51,16 @@ async function lastEnd(board: string): Promise<string> {
 /** Which keys are waiting to be taken, taken by the session, or relayed to it and being worked on (until the board stops asking them).
  *  untaken: a batch has waited long enough that no open session will take it. listening: a watcher of the kit holds the game now —
  *  answers sent wake its session; when none does, ended says why the last one stopped. */
-export async function status(s: Summary): Promise<{ sent: string[]; taken: string[]; relayed: string[]; untaken: boolean; listening: boolean | null; ended: string; batches: string[] }> {
+export async function status(s: Summary): Promise<{ sent: string[]; taken: string[]; relayed: string[]; untaken: boolean; listening: boolean | null; working: boolean; ended: string; batches: string[] }> {
   const dir = box(s);
-  const out = { sent: [] as string[], taken: [] as string[], relayed: [] as string[], untaken: false, listening: null as boolean | null, ended: "", batches: [] as string[] };
+  const out = { sent: [] as string[], taken: [] as string[], relayed: [] as string[], untaken: false, listening: null as boolean | null, working: false, ended: "", batches: [] as string[] };
   if (!dir) return out;
   out.listening = await watched(s.local!.board!);
-  if (!out.listening) out.ended = await lastEnd(s.local!.board!);
+  if (!out.listening) {
+    const act = await fs.stat(path.join(s.local!.board!, ".active")).catch(() => null);
+    out.working = Boolean(act && Date.now() - act.mtimeMs < WORK);  // mid-turn: no watcher waits, but the turn's end brings one
+    if (!out.working) out.ended = await lastEnd(s.local!.board!);
+  }
   const names = await fs.readdir(dir).catch(() => [] as string[]);
   const held = names.some((n) => n.endsWith(".taken")) ? await watched(s.local!.board!) : true;
   for (const n of names) {

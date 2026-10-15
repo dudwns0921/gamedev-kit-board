@@ -78,6 +78,8 @@ export default function ReviewTab({ game, box, items, file, zoom, run }: {
   // whether answers sent now wake a session — told by the kit's watcher files, nothing asked of the session
   const idle = !run || box.listening == null ? null : box.listening
     ? <div className="listen small"><i />The game&apos;s session is listening — answers you send wake it.</div>
+    : box.working
+    ? <div className="listen small work"><i />The game&apos;s session is at work — answers you send are taken when this turn ends.</div>
     : <div className="card idle"><b>No session is listening right now</b>{box.ended ? <span className="muted"> — {box.ended}</span> : null}.
         {" "}Send any message in the game&apos;s Claude session (or open one): it picks up what waits and listens again.{box.untaken ? " Your answers wait for it." : ""}</div>;
   if (!items.length) return <>{idle}<div className="empty">Nothing waits on you. New decisions, questions, images to approve and checks show up here as the game&apos;s session raises them.</div></>;
@@ -159,9 +161,13 @@ export default function ReviewTab({ game, box, items, file, zoom, run }: {
   );
 }
 
+const CLIP = /\.(mp4|webm|m4v|mov)$/i;
+
 function Pic({ p, file, zoom }: { p: Picture; file: (s: string) => string; zoom: Zoom }) {
   if (!p.src) return <figure><figcaption>{p.label}</figcaption><div className="im" /></figure>;
   const src = file(p.src);
+  // a clip of play — for a choice about motion, timing or feel; muted, looping, played where it stands
+  if (CLIP.test(p.src)) return <figure className="clip"><figcaption>{p.label}</figcaption><video src={src} controls muted loop playsInline preload="metadata" /></figure>;
   if (p.crop && p.size) {
     const [x, y, w, h] = p.crop;
     const pct = (v: number, of: number) => `${(100 * v) / of}%`;

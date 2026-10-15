@@ -33,7 +33,7 @@ export function follow(game: string, tell: (event: "summary" | "inbox", data: un
     if (again) clearTimeout(again);
     // time alone turns a batch into "no session took it": 8 s for one not taken, a minute for one taken and never read —
     // and a monitor's beat going quiet (it touches .watching every couple of seconds) into "no session listening"
-    const wait = box.sent.length ? 8_500 : box.taken.length ? 61_000 : box.listening ? 12_000 : 0;
+    const wait = box.sent.length ? 8_500 : box.taken.length ? 61_000 : box.listening ? 12_000 : box.working ? 60_000 : 0;
     again = wait ? setTimeout(() => current().then((x) => x && lookInbox(x)), wait) : null;
   };
 
@@ -54,7 +54,7 @@ export function follow(game: string, tell: (event: "summary" | "inbox", data: un
       soon = setTimeout(() => current().then((x) => x && lookInbox(x)), SETTLE);
     };
     try {
-      stateWatch = watch(dir, (_e, name) => { if (name && [".rewake", ".rewake.log", ".watching"].includes(String(name))) onInbox(); });
+      stateWatch = watch(dir, (_e, name) => { if (name && [".rewake", ".rewake.log", ".watching", ".active"].includes(String(name))) onInbox(); });
       stateWatch.on("error", () => { stateWatch?.close(); stateWatch = null; });
     } catch { /* no board folder yet */ }
     try {
