@@ -1,17 +1,7 @@
+import type { Summary } from "./board";
 import { keys, read } from "./storage";
 
-// The shape of the kit's board.json (board.py writes it beside the board). Fields the kit adds later simply pass through.
-export type Summary = {
-  game: string;
-  name: string;
-  drawn: string;
-  received: string;
-  complete: number;
-  share: string | null;
-  now: { cycle: string; name: string; stage: string } | null;
-  counts: { problems: number; not_made: number; placeholders: number; undecided: number; review: number };
-  stages: { name: string; complete: number | null }[];
-};
+export * from "./board";
 
 export async function summary(game: string): Promise<Summary | null> {
   const got = await read(`games/${game}/summary.json`);
