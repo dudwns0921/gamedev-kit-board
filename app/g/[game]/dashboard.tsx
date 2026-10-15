@@ -94,8 +94,8 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
         </nav>
 
         {s.now?.pause ? (
-          <div className="pause small">At a break — a good moment to start the game&apos;s session over light, in the same window:
-            <code>/clear</code> then <code>/gamedev-kit:cycle next</code>. It stays connected to this dashboard.</div>
+          <div className="pause small">The game&apos;s conversation is long{s.now.context ? ` — about ${Math.round(s.now.context / 1000)}k tokens, re-read every turn` : ""} — and the cycle is at a break.
+            A good moment to type <code>/clear</code> then <code>/gamedev-kit:cycle next</code> in the session: same window, still connected to this dashboard.</div>
         ) : null}
 
         {tab === "overview" ? <Overview s={s} b={b} flow={flow} counts={counts} file={file} go={go} run={run} /> : null}
