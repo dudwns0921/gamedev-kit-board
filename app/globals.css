@@ -1,0 +1,55 @@
+/* The kit's board look: dark green ground, mint · lime accents, mono labels. One look on purpose — the board pages are the same. */
+:root {
+  color-scheme: dark;
+  --bg: #07110e; --card: #0d1b22; --card2: #10262b; --line: #17332d; --line2: #27504a;
+  --mint: #3dffb0; --lime: #d8ff5a; --sky: #8ad8ff; --red: #ff5a6a; --red2: #ff8a96; --sun: #ffd24a;
+  --tx: #f0f1f5; --tx2: #a9afba; --tx3: #7c8792;
+  --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --sans: -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  color: var(--tx); font: 14px/1.5 var(--sans);
+  background: radial-gradient(900px 520px at 12% -10%, rgba(61,255,176,.16), transparent 60%), linear-gradient(135deg, #07110e, #0b2a22 55%, #1a1033);
+  background-color: var(--bg);
+}
+a { color: inherit; text-decoration: none; }
+.lab { font: 10px/1.4 var(--mono); letter-spacing: .1em; color: var(--tx3); text-transform: uppercase; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 40px; display: flex; flex-direction: column; gap: 16px; }
+h1 { margin: 0; font-size: 28px; font-weight: 900; letter-spacing: -.02em; color: transparent;
+  background: linear-gradient(90deg, #3dffb0, #d8ff5a 45%, #ffd24a 80%, #ff8ad1); -webkit-background-clip: text; background-clip: text; }
+.top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.top form { margin-left: auto; }
+.btn { font: 11px var(--mono); padding: 6px 14px; border: 1px solid var(--line2); border-radius: 999px; background: var(--card); color: var(--tx2); cursor: pointer; }
+.btn:hover { border-color: var(--mint); color: var(--tx); }
+.btn.go { border-color: var(--sky); color: var(--sky); }
+.btn.rv { border-color: var(--red); color: var(--red2); }
+.games { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 14px; }
+.game { display: flex; flex-direction: column; gap: 10px; background: var(--card); border: 1px solid var(--line2); border-radius: 18px; padding: 16px; transition: border-color .15s; min-width: 0; }
+.game:hover { border-color: var(--mint); }
+.game h2 { margin: 0; font-size: 20px; }
+.row { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.pct { font: 800 30px var(--mono); color: var(--lime); }
+.now { color: var(--tx2); font-size: 13px; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { font: 10.5px var(--mono); padding: 2px 9px; border: 1px solid var(--line2); border-radius: 999px; color: var(--tx2); }
+.chip.bad { border-color: var(--red); color: var(--red2); }
+.bars { display: flex; gap: 4px; height: 8px; }
+.bars div { flex: 1; background: #10241f; border-radius: 999px; overflow: hidden; }
+.bars i { display: block; height: 100%; background: linear-gradient(90deg, var(--mint), var(--lime)); }
+.when { font: 10.5px var(--mono); color: var(--tx3); }
+.empty { color: var(--tx2); border: 1px dashed var(--line2); border-radius: 18px; padding: 20px; line-height: 1.7; }
+.empty code { font-family: var(--mono); color: var(--lime); }
+/* the board of one game: a thin bar and the kit's page under it */
+.frame { position: fixed; inset: 0; display: flex; flex-direction: column; }
+.bar { display: flex; gap: 8px; align-items: center; padding: calc(8px + env(safe-area-inset-top, 0px)) 12px 8px; border-bottom: 1px solid var(--line); background: rgba(7,17,14,.92); flex-wrap: wrap; }
+.bar .fresh { margin-left: auto; font: 10.5px var(--mono); color: var(--tx3); }
+.bar .fresh.new { color: var(--mint); }
+.frame iframe { flex: 1; width: 100%; border: 0; background: var(--bg); }
+.login { max-width: 360px; margin: 18vh auto 0; padding: 0 16px; display: flex; flex-direction: column; gap: 12px; }
+.login input { font: 16px var(--sans); padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line2); background: #08130f; color: var(--tx); }
+.login input:focus { outline: none; border-color: var(--mint); }
+.login button { font: 600 15px var(--sans); padding: 12px; border-radius: 12px; border: 1px solid var(--mint); background: rgba(61,255,176,.14); color: var(--tx); cursor: pointer; }
+.wrong { color: var(--red2); font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
