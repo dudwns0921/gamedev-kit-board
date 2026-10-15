@@ -22,7 +22,7 @@ The sign-in password is made on the first run — it is `GAMEDEV_BOARD_PASSWORD`
 The server listens on your machine only. Reach it through one of:
 
 - **Tailscale** (phone and laptop): install it on both devices, then on the machine running the dashboard `tailscale serve --bg 3100`. Open the https address it prints — only your own devices reach it.
-- **SSH**: `ssh -L 3100:localhost:3100 <your machine>`, then open `http://localhost:3100` on the device you are on.
+- **SSH**: `ssh -L 3100:127.0.0.1:3100 <your machine>`, then open `http://127.0.0.1:3100` on the device you are on.
 
 Do not open the port to the internet.
 
