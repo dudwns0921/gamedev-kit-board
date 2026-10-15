@@ -191,6 +191,9 @@ details > summary { cursor: pointer; color: var(--tx3); font-size: 12.5px; paddi
 .figs { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
 .figs figure { margin: 0; display: flex; flex-direction: column; gap: 4px; }
 .figs figcaption { font: 11px var(--mono); color: var(--tx2); }
+.figs .im.pic { aspect-ratio: auto; display: block; overflow: hidden; background: var(--surface2); }
+.figs .im.pic img { display: block; width: 100%; height: auto; }
+.card.q { align-self: start; }
 .figs .im { aspect-ratio: 1; border-radius: 10px; border: 1px solid var(--border); background: var(--surface2) center/contain no-repeat; width: 100%; padding: 0; cursor: zoom-in; }
 .zoombox { position: fixed; inset: 0; z-index: 50; background: rgba(5,8,12,.88); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; cursor: zoom-out; padding: 16px; }
 .zoombox img { max-width: 94vw; max-height: 84vh; object-fit: contain; }

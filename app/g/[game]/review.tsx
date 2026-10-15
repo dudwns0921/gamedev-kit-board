@@ -185,5 +185,5 @@ function Pic({ p, file, zoom }: { p: Picture; file: (s: string) => string; zoom:
       </figure>
     );
   }
-  return <figure><figcaption>{p.label}</figcaption><button className="im" style={{ backgroundImage: `url(${src})` }} onClick={() => zoom(src, p.label)} aria-label={p.label} /></figure>;
+  return <figure><figcaption>{p.label}</figcaption><button className="im pic" onClick={() => zoom(src, p.label)} aria-label={p.label}><img alt="" src={src} /></button></figure>;
 }
