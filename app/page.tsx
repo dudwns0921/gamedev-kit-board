@@ -48,7 +48,7 @@ export default async function Home() {
   const sum = (k: keyof typeof zero) => all.reduce((n, s) => n + ((s.counts ?? zero)[k] ?? 0), 0);
   const waiting = all.filter((s) => s.counts?.review);
   return (
-    <>
+    <div className="screen">
       <header className="topbar">
         <div className="in">
           <div className="title"><span className="lab">Game boards</span><b>Your games</b></div>
@@ -57,12 +57,13 @@ export default async function Home() {
           </div>
         </div>
       </header>
-      <main className="wrap">
+      <main className="body">
+       <div className="wrap">
         {all.length ? (
           <>
             <div className="kpis">
               <div className="card kpi"><span className="lab">Games</span><b>{all.length}</b></div>
-              <div className={`card kpi${sum("review") ? " alert" : ""}`}><span className="lab">Waiting on you</span><b>{sum("review")}</b><small>answers, approvals, checks</small></div>
+              <div className={`card kpi${sum("review") ? " alert" : ""}`}><span className="lab">Waiting on you</span><b>{sum("review")}</b><small>decisions, questions, checks</small></div>
               <div className={`card kpi${sum("problems") ? " alert" : ""}`}><span className="lab">Problems</span><b>{sum("problems")}</b></div>
             </div>
             {waiting.length ? (
@@ -91,7 +92,8 @@ export default async function Home() {
             <code>board.py push</code> once — after that every turn sends it.
           </div>
         )}
+       </div>
       </main>
-    </>
+    </div>
   );
 }
