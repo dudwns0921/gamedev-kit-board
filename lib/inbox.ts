@@ -26,6 +26,20 @@ export async function send(s: Summary, rows: Answer[]): Promise<{ ok: boolean; s
 }
 
 const UNTAKEN = 8_000; // a batch no watcher took in this long: no session of the game is open
+const STRANDED = 60_000; // a batch taken this long ago, never read, with no watcher alive: the session it was meant to wake did not wake (or has gone)
+const BEAT = 10_000; // the kit's monitor touches .watching every couple of seconds
+
+function alive(pid: number): boolean {
+  try { process.kill(pid, 0); return true; } catch (e) { return (e as NodeJS.ErrnoException).code === "EPERM"; }
+}
+
+/** A watcher of the kit still holds this game: a monitor beating, or the after-turn hook waiting. */
+async function watched(board: string): Promise<boolean> {
+  const beat = await fs.stat(path.join(board, ".watching")).catch(() => null);
+  if (beat && Date.now() - beat.mtimeMs < BEAT) return true;
+  const pid = Number((await fs.readFile(path.join(board, ".rewake"), "utf8").catch(() => "")).trim());
+  return Number.isInteger(pid) && pid > 0 && alive(pid);
+}
 
 /** Which keys are waiting to be taken, taken by the session, or relayed to it and being worked on (until the board stops asking them).
  *  untaken: a batch has waited long enough that no open session will take it. */
@@ -34,7 +48,15 @@ export async function status(s: Summary): Promise<{ sent: string[]; taken: strin
   const out = { sent: [] as string[], taken: [] as string[], relayed: [] as string[], untaken: false, batches: [] as string[] };
   if (!dir) return out;
   const names = await fs.readdir(dir).catch(() => [] as string[]);
+  const held = names.some((n) => n.endsWith(".taken")) ? await watched(s.local!.board!) : true;
   for (const n of names) {
+    if (n.endsWith(".taken") && !held) {
+      const at = (await fs.stat(path.join(dir, n)).catch(() => null))?.mtimeMs ?? Date.now();
+      if (Date.now() - at > STRANDED) {
+        out.untaken = true;
+        out.batches.push(n);
+      }
+    }
     if (n.endsWith(".json")) {
       const at = Number(n.split("-")[0]);
       if (Number.isFinite(at) && Date.now() - at > UNTAKEN) {

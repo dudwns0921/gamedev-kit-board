@@ -103,7 +103,7 @@ export async function start(s: Summary, batches: string[] = []): Promise<{ ok: b
     "--max-budget-usd", String(c.budget)];
   const child = spawn(process.env.CLAUDE_BIN || "claude", args, {
     cwd: local.root, detached: true, stdio: ["ignore", out, out],
-    env: { ...process.env, GAMEDEV_KIT_JOB: id },
+    env: { ...clean(process.env), GAMEDEV_KIT_JOB: id },
   });
   closeSync(out);
   if (!child.pid) return { ok: false, said: "Claude Code could not be started — is `claude` installed on this machine?" };
@@ -124,6 +124,11 @@ export async function start(s: Summary, batches: string[] = []): Promise<{ ok: b
   });
   child.unref();
   return { ok: true, said: "Claude started on this game — it reads your answers and works until it needs you again." };
+}
+
+/** The environment without what ties a process to the Claude session that happened to start this dashboard — a run is a session of its own. */
+function clean(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  return Object.fromEntries(Object.entries(env).filter(([k]) => !/^(CLAUDE_CODE_|CLAUDECODE$|CLAUDE_EFFORT$|CLAUDE_PLUGIN_|CLAUDE_SKILL_|CLAUDE_PROJECT_DIR$)/.test(k))) as NodeJS.ProcessEnv;
 }
 
 export async function stop(game: string): Promise<{ ok: boolean; said: string }> {
