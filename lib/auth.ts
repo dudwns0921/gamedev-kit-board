@@ -62,3 +62,9 @@ export function failed(err: unknown, store: string): Response {
   const why = err instanceof Error ? err.message : String(err);
   return new Response(`could not store in ${store}: ${why}`, { status: 500 });
 }
+
+/** A redirect by path alone. Behind a proxy (tailscale serve, an SSH forward) the request's own URL names this machine's address, not the one the browser used —
+ *  an absolute Location would send the browser there. */
+export function go(path: string): Response {
+  return new Response(null, { status: 303, headers: { location: path } });
+}
