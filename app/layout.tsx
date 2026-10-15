@@ -7,6 +7,8 @@ export const metadata: Metadata = { title: "Game boards", description: "Where ea
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  maximumScale: 1,  // a phone does not zoom in — not on a pinch, not when a note field takes focus
+  userScalable: false,
   viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f6f7f9" },
