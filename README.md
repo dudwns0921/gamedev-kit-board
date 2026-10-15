@@ -29,9 +29,9 @@ The app answers only to `localhost`, `127.0.0.1` and a Tailscale name (`*.ts.net
 
 ## What it does not do
 
-It does not chat. Answering what waits on you: pick the answers on the Review tab and send them to the session — the game's open Claude session is woken for them.
-With no session open, it can run Claude Code here for them (`claude` on this machine) — only once you allow it for that game, with a dollar limit per run; the run works until it needs you again, and you can stop it.
-It does not upload, push or post anything; those come back to you as decisions.
+It does not chat and does not run anything in a game — it only signals. Pick the answers on the Review tab (an option, approve, OK, "not needed") and send them:
+they go to the game's inbox, the game's open Claude session is woken for them — or the next session you open picks them up — and the session does the work.
+The page follows as the session redraws the board.
 
 ## Run it by hand (development)
 

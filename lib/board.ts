@@ -20,28 +20,13 @@ export type Stage = {
   work: { cycle: string; name: string; stage: string; tasks: { num: string; title: string; mark: string; did: string }[] }[];
 };
 
-/** An open question. One from a cycle names its decision — the dashboard can withdraw it. */
-export type Ask = { title: string; text: string; from: string; decision?: { doc: string; num: string } };
+/** An open question. One from a cycle names its decision — the dashboard can send "not needed" for it (key: the review card's key). */
+export type Ask = { title: string; text: string; from: string; decision?: { doc: string; num: string; key?: string } };
 
-/** What the dashboard can do to a game on this machine (lib/act.ts runs it). */
+/** The one thing the dashboard does to a game: send answers to its session (lib/act.ts). The session does the work. */
 export type Answer = { key: string; pick: string; note: string };
 
-export type Act =
-  | { action: "send"; rows: Answer[] }
-  | { action: "drop-decision"; doc: string; num: string; why?: string }
-  | { action: "drop-asset"; tool: string; name: string }
-  | { action: "job-allow"; on: boolean; budget?: number }
-  | { action: "job-start" }
-  | { action: "job-stop" };
-
-/** Claude run by the dashboard on a game (lib/jobs.ts). allowed: null until the user has been asked. */
-export type JobLine = { kind: "say" | "tool" | "result"; text: string; error?: boolean; cost?: number; turns?: number };
-export type Job = {
-  allowed: boolean | null;
-  budget: number;
-  run: { id: string; status: "running" | "done" | "failed" | "stopped" | "ended"; started: string; ended?: string; cost?: number; turns?: number; said?: string } | null;
-  lines: JobLine[];
-};
+export type Act = { action: "send"; rows: Answer[] };
 
 export type Picture = { label: string; src: string; crop?: number[]; size?: number[] };
 

@@ -1,8 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { Job, Picture, Review } from "@/lib/board";
-import JobPanel from "./job";
+import type { Picture, Review } from "@/lib/board";
 import NotNeeded, { type Run } from "./not-needed";
 
 export type Zoom = (src: string, label: string) => void;
@@ -15,7 +14,7 @@ export type Zoom = (src: string, label: string) => void;
 // Picks are kept in this browser until sent; a question asked anew has a new key, so an old pick never answers it.
 
 type A = Record<string, { pick: string; note: string }>;
-type Box = { sent: string[]; taken: string[]; relayed?: string[]; untaken?: boolean; job?: Job };
+type Box = { sent: string[]; taken: string[]; relayed?: string[]; untaken?: boolean };
 
 const GROUPS: { id: string; title: string; hit: (i: Review) => boolean; hint?: string }[] = [
   { id: "now", title: "Decisions — this cycle", hit: (i) => i.kind === "decision" && i.latest !== false },
@@ -107,18 +106,19 @@ export default function ReviewTab({ game, share, items, file, zoom, run }: {
     }
   }
 
-  const job = mode === "direct" && run ? <JobPanel job={box.job ?? null} untaken={Boolean(box.untaken)} run={run} look={look} /> : null;
-  if (!items.length) return <>{job}<div className="empty">Nothing waits on you. New decisions, questions, images to approve and checks show up here as the game&apos;s session raises them.</div></>;
+  const idle = mode === "direct" && box.untaken
+    ? <div className="card idle">No open session of this game has taken your answers. They wait in the game — open its Claude session, and it picks them up as it starts.</div> : null;
+  if (!items.length) return <>{idle}<div className="empty">Nothing waits on you. New decisions, questions, images to approve and checks show up here as the game&apos;s session raises them.</div></>;
 
   return (
     <>
-      {job}
+      {idle}
       <div className="card how">
         {mode === "direct" ? (
           <ol>
             <li><b>Pick an answer</b> on each card you want to settle — a note is optional.</li>
-            <li><b>Send to the session</b> (bottom bar). The game&apos;s open session is woken for them — with none open, this dashboard runs Claude for them, once you allow it.</li>
-            <li>It records and works on them; each card shows where it stands, and leaves once done.</li>
+            <li><b>Send to the session</b> (bottom bar). The game&apos;s open Claude session is woken for them — or the next one you open picks them up.</li>
+            <li>The session records and works on them; this page only shows it — each card shows where it stands, and leaves once done.</li>
           </ol>
         ) : mode === "link" ? (
           <ol>
@@ -174,8 +174,8 @@ export default function ReviewTab({ game, share, items, file, zoom, run }: {
                     {pickable && !where ? <textarea className="note" rows={1}
                       placeholder={i.kind === "question" ? "Your answer" : i.kind === "decision" ? "Note (optional)" : i.kind === "check" ? "What did you see?" : "What is off?"}
                       value={v?.note ?? ""} onChange={(e) => set(i.key, { note: e.target.value })} /> : null}
-                    {i.kind === "decision" && i.doc && !where ? <NotNeeded run={run} what={i.ref} act={{ action: "drop-decision", doc: i.doc, num: i.ref }} /> : null}
-                    {i.kind === "asset" && i.state === "image only" && !where ? <NotNeeded run={run} what={i.ref} act={{ action: "drop-asset", tool: i.tool, name: i.ref }} /> : null}
+                    {i.kind === "decision" && i.doc && !where ? <NotNeeded run={run} what={i.ref} item={i.key} /> : null}
+                    {i.kind === "asset" && i.state === "image only" && !where ? <NotNeeded run={run} what={i.ref} item={i.key} /> : null}
                   </div>
                 );
               })}

@@ -254,7 +254,7 @@ function AskRow({ q, run }: { q: Ask; run: Run | null }) {
       <div className="t">
         <b>{q.title}</b>
         <small>{q.text ? q.text + " · " : ""}{q.from}</small>
-        {q.decision ? <NotNeeded run={run} what={q.decision.num} act={{ action: "drop-decision", doc: q.decision.doc, num: q.decision.num }} /> : null}
+        {q.decision?.key ? <NotNeeded run={run} what={q.decision.num} item={q.decision.key} /> : null}
       </div>
     </li>
   );

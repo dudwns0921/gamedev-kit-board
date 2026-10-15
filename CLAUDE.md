@@ -18,7 +18,8 @@ No chat and no prompt box here — Claude (desktop · app · terminal) is where 
 - **Game data stays on the machine.** Storage is `.data/` beside the app. (A private Vercel Blob store is still read when its variables are set — for a user who hosts it elsewhere.)
 - **Logic in `lib/`, routes stay thin.** Client components import only `lib/board.ts` (types and small helpers) — never the storage code.
 - **The data shape is the kit's.** `lib/board.ts` mirrors the kit's `board.json`. A field the kit adds passes through; change the kit first, then this.
-- **Acting on a game runs the kit's own scripts, nothing else.** `lib/act.ts` turns a request into one fixed command (the cycle skill's `drop`, the asset skill's `drop`), with arguments checked against strict patterns and no shell; then it runs the board's `push` back to this dashboard. Only for a game whose board came from this machine (`local` in its summary).
+- **It only signals — it never acts on a game.** The one thing it writes into a game is a batch of answers in its inbox (`lib/inbox.ts`): an option, approve, OK,
+  "not needed". The game's Claude session is woken for it and does the work; this app learns what happened from the board the session sends. No scripts run here, no Claude runs here.
 - **The kit drives it.** What `serve` runs (`npm install`, `npm run build`, `npm run start -- -p <port> -H 127.0.0.1`, the environment variables) is a contract with the kit — change both together.
 - Code, comments, UI text and commit messages in English.
 
@@ -36,17 +37,15 @@ End to end: run it (README "Run it by hand"), point a sample game at it, `board.
 Done: the dashboard of games (what waits across games) · one game drawn from data (overview · review · stages · assets), redrawn in place as a newer board arrives ·
 four themes (system · light · dark · kit) · the kit's own page at `/g/<game>/kit` · started by the kit's `serve`.
 
-Done since: **Not needed** on a decision (or an asset attempt waiting for approval) withdraws it in the game itself and redraws the board.
+Done since: **Not needed** on a decision (or an asset attempt waiting for approval) is sent to the session like any answer.
 **Answers straight to the session**: the Review tab holds everything that waits (every cycle's open decisions, the GDD's open questions, images, checks);
 "Send to the session" writes one batch into the game's `<board>/inbox/` (`lib/inbox.ts`); the kit's watcher wakes the open session for it (or tells the next one),
 and each card shows sent → taken until the board no longer asks it. The page checks every few seconds.
 
-Done since: **Claude run here** (`lib/jobs.ts`): a batch no open session took in 8 s is run by Claude Code in the game's folder (`claude -p`, stream-json log in `.data/jobs/`),
-once the user allowed it for that game on the consent card (with a dollar limit per run, `--max-budget-usd`). One run per game; Stop kills its process group; a run is started
-by itself once per batch (one that ended without taking its batch waits for Run again). Outward actions are closed twice: tool rules here (no git push · gh · curl · WebFetch) and the kit's
-scripts, which refuse to upload, push or post while `GAMEDEV_KIT_JOB` is set. `serve` passes `CLAUDE_BIN`.
+A batch no open session took (or one taken by a session that never read it) is shown as waiting for the next session — nothing more.
 
 Next, in order:
-1. Confirm in use that the desktop app wakes for a batch (the kit's monitor, or its after-turn hook), and that a real run ends at the next stopping point.
+1. Confirm in use that the desktop app wakes for a batch (the kit's monitor, or its after-turn hook).
 2. Views a chat cannot give: change over time (decisions → build → play per cycle), all games side by side, a notification when a decision is waiting.
-3. The Rules page: the user's rules from every game (`feedback.py list --all --json` · `state --json`), what went to the kit, what the kit took in — and dropping a copy the kit now carries.
+3. The Rules page: the user's rules from every game — sent with the board by the kit, never read here by running a script — what went to the kit, what the kit took in;
+   "drop my copy" is a signal to a session like any answer.
