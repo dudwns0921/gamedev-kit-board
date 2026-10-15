@@ -18,7 +18,6 @@ const GROUPS: { id: string; title: string; hit: (i: Review) => boolean; hint?: s
   { id: "earlier", title: "Decisions left in earlier cycles", hit: (i) => i.kind === "decision" && i.latest === false,
     hint: "Still open from cycles that have moved on. Answer, or mark not needed." },
   { id: "gdd", title: "Open questions in the GDD", hit: (i) => i.kind === "question", hint: "Write the answer in the note — the session puts it in the GDD." },
-  { id: "asset", title: "Assets to approve", hit: (i) => i.kind === "asset" },
   { id: "check", title: "Check by playing", hit: (i) => i.kind === "check" },
 ];
 
@@ -29,9 +28,7 @@ function choices(i: Review): { pick: string; text: string; mark?: string; tag?: 
       tag: chose && o.mark === chose ? "for you" : o.mark && o.mark === i.recommend ? "recommended" : undefined }));
     return i.proxy ? [{ pick: "accept", mark: "✓", text: `Accept ${chose || i.proxy}` }, ...opts] : opts;
   }
-  if (i.kind === "asset") return [{ pick: "approve", text: "Approve" }, { pick: "redo", text: "Redo", no: true }];
   if (i.kind === "question") return [{ pick: "answer", text: "Answer (in the note)" }, { pick: "drop", text: "Not needed", no: true }];
-  if (i.kind === "style") return [{ pick: "keep", text: "Keep this look" }, { pick: "redraw", text: "Redraw", no: true }];
   return [{ pick: "ok", text: "OK" }, { pick: "problem", text: "Problem", no: true }];
 }
 
@@ -75,7 +72,7 @@ export default function ReviewTab({ game, box, items, file, zoom, run }: {
     }
   }
 
-  if (!items.length) return <><div className="empty">Nothing waits on you. New decisions, questions, images to approve and checks show up here as the game&apos;s session raises them.</div></>;
+  if (!items.length) return <><div className="empty">Nothing waits on you. New decisions, questions and checks show up here as the game&apos;s session raises them.</div></>;
 
   return (
     <>
@@ -105,17 +102,9 @@ export default function ReviewTab({ game, box, items, file, zoom, run }: {
                   <div key={i.key} className={`card q${v?.pick ? " done" : ""}${where ? ` flight ${where}` : ""}`}>
                     {where ? <span className={`state ${where}`}>{where === "sent" ? "Sent — waiting for the session" : "The session is on it"}</span> : null}
                     {i.kind === "decision" ? <span className="lab">{[i.latest === false ? `cycle ${i.cycle}` : "", i.who, i.proxy ? "decided for you" : ""].filter(Boolean).join(" · ")}</span> : null}
-                    {i.kind === "asset" || i.kind === "style" ? <span className="lab">{i.tool === "asset" ? "3D model" : "sprite"} · {i.state}</span> : null}
                     <h3>{i.kind === "decision" ? <code>{i.ref}</code> : null}{i.title}</h3>
                     {i.kind === "question" && i.text ? <div className="small muted">{i.text}</div> : null}
-                    {(i.kind === "asset" || i.kind === "style") && i.what ? <div className="small muted clamp" title={i.what}>{i.what}</div> : null}
-                    {(i.kind === "asset" || i.kind === "style") && i.said.length ? <div className="was clamp">Turned down: {i.said.join(" / ")}</div> : null}
                     {i.kind === "decision" && i.pictures.length ? <div className="figs">{i.pictures.map((p, n) => <Pic key={n} p={p} file={file} zoom={zoom} />)}</div> : null}
-                    {(i.kind === "asset" || i.kind === "style") && i.views.length ? (
-                      <div className="figs">
-                        {i.views.map((src) => <figure key={src}><button className="im" style={{ backgroundImage: `url(${file(src)})` }} onClick={() => zoom(file(src), i.ref)} aria-label={i.ref} /></figure>)}
-                      </div>
-                    ) : null}
                     <div className={`opts${i.kind === "decision" ? "" : " pair"}`}>
                       {opts.map((o) => (
                         <button key={o.pick} className={`opt${o.no ? " no" : ""}${v?.pick === o.pick ? " on" : ""}`} disabled={!pickable || !!where}
@@ -125,10 +114,9 @@ export default function ReviewTab({ game, box, items, file, zoom, run }: {
                       ))}
                     </div>
                     {pickable && !where ? <textarea className="note" rows={1}
-                      placeholder={i.kind === "question" ? "Your answer" : i.kind === "decision" ? "Note (optional)" : i.kind === "check" ? "What did you see?" : "What is off?"}
+                      placeholder={i.kind === "question" ? "Your answer" : i.kind === "decision" ? "Note (optional)" : "What did you see?"}
                       value={v?.note ?? ""} onChange={(e) => set(i.key, { note: e.target.value })} /> : null}
                     {i.kind === "decision" && i.doc && !where ? <NotNeeded run={run} what={i.ref} item={i.key} /> : null}
-                    {i.kind === "asset" && i.state === "image only" && !where ? <NotNeeded run={run} what={i.ref} item={i.key} /> : null}
                   </div>
                 );
               })}

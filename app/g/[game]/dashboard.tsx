@@ -394,72 +394,27 @@ function Stages({ b, sel, pick, file, zoom, run }: { b: Board; sel: number; pick
   );
 }
 
-const SHOW = [
-  { id: "all", label: "All", hit: (_m: Model) => true },
-  { id: "old", label: "Old style", hit: (m: Model) => m.old },
-  { id: "image", label: "Image only", hit: (m: Model) => m.state === "image only" },
-  { id: "approved", label: "Approved", hit: (m: Model) => m.state === "approved" },
-  { id: "game", label: "In the game", hit: (m: Model) => m.state === "in the game" },
-] as const;
-
 function Assets({ a, file, zoom }: { a: Board["assets"]; file: (p: string) => string; zoom: Zoom }) {
-  const [show, setShow] = useState<(typeof SHOW)[number]["id"]>("all");
-  const rule = SHOW.find((x) => x.id === show)!;
-  const shown = useMemo(() => a.models.filter(rule.hit), [a.models, rule]);
+  // Every picture, model and sound in the game's asset folders, side by side — whoever made it. The kit makes none.
   return (
-    <>
-      <div className="split">
-        <section className="sec">
-          <div className="sec-h"><h2>Models · images</h2><span className="lab">{a.models.length}</span></div>
-          <div className="filters">
-            {SHOW.map((x) => {
-              const n = a.models.filter(x.hit).length;
-              return <button key={x.id} className={show === x.id ? "on" : ""} onClick={() => setShow(x.id)} disabled={!n && x.id !== "all"}>{x.label} {n}</button>;
-            })}
-          </div>
-          {shown.length ? (
-            <div className="thumbs">
-              {shown.map((m) => (
-                <div key={m.tool + m.name} className={m.old ? "thumb old" : "thumb"} title={m.what}>
-                  <i className={`dot st-${m.st}`} />
-                  {m.img ? <button className="im" style={{ backgroundImage: `url(${file(m.img)})` }} onClick={() => zoom(file(m.img), m.name)} aria-label={m.name} /> : <div className="im">no image</div>}
-                  <span className="nm">{m.name}</span>
-                  <div className="chips">
-                    <span className="chip">{m.state}</span>
-                    {m.old ? <span className="chip bad">old style</span> : null}
-                    {m.sample ? <span className="chip acc">sample</span> : null}
-                    {m.rejected ? <span className="chip warn">rejected {m.rejected}</span> : null}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : <div className="empty">No asset records.</div>}
-          {a.loose.length ? (
-            <details>
-              <summary>In the game without a record — {a.loose.length} (pictures, models, sheets put in by hand)</summary>
-              <div className="thumbs">
-                {a.loose.map((m) => (
-                  <div key={m.name + m.what} className="thumb" title={m.what}>
-                    {m.img ? <button className="im" style={{ backgroundImage: `url(${file(m.img)})` }} onClick={() => zoom(file(m.img), m.name)} aria-label={m.name} /> : <div className="im">model</div>}
-                    <span className="nm">{m.name}</span>
-                  </div>
-                ))}
+    <div className="split">
+      <section className="sec">
+        <div className="sec-h"><h2>Models · images</h2><span className="lab">{a.models.length}</span></div>
+        {a.models.length ? (
+          <div className="thumbs">
+            {a.models.map((m) => (
+              <div key={m.what} className="thumb" title={m.what}>
+                {m.img ? <button className="im" style={{ backgroundImage: `url(${file(m.img)})` }} onClick={() => zoom(file(m.img), m.name)} aria-label={m.name} /> : <div className="im">model</div>}
+                <span className="nm">{m.name}</span>
               </div>
-            </details>
-          ) : null}
-        </section>
-        <aside className="sec">
-          <div className="sec-h"><h2>Sounds</h2><span className="lab">{a.sounds.length}</span></div>
-          <div className="card">{a.sounds.length ? <ul className="list">{a.sounds.map((x, n) => <ItemRow key={n} i={x} file={file} />)}</ul> : <span className="small muted">None.</span>}</div>
-          <div className="sec-h"><h2>Basis</h2><span className="lab">attached to every asset</span></div>
-          <div className="card sec small">
-            <div><span className="lab">Art style</span><div>{a.style || <span className="muted">Empty — set it before the first asset.</span>}</div></div>
-            {a.world ? <div><span className="lab">World</span><div>{a.world}</div></div> : null}
-            {a.learned.length ? <div><span className="lab">Learned {a.learned.length}</span><ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>{a.learned.map((x, n) => <li key={n}>{x}</li>)}</ul></div> : null}
-            {a.sound ? <div><span className="lab">Sound style</span><div>{a.sound}</div></div> : null}
+            ))}
           </div>
-        </aside>
-      </div>
-    </>
+        ) : <div className="empty">No pictures or models in the asset folders yet.</div>}
+      </section>
+      <aside className="sec">
+        <div className="sec-h"><h2>Sounds</h2><span className="lab">{a.sounds.length}</span></div>
+        <div className="card">{a.sounds.length ? <ul className="list">{a.sounds.map((x, n) => <ItemRow key={n} i={x} file={file} />)}</ul> : <span className="small muted">None.</span>}</div>
+      </aside>
+    </div>
   );
 }

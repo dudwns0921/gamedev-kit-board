@@ -38,7 +38,6 @@ export type Picture = { label: string; src: string; crop?: number[]; size?: numb
 export type Review =
   | { kind: "decision"; key: string; ref: string; title: string; cycle: string; doc?: string; latest?: boolean; who: string; recommend: string; proxy: string;
       options: { mark: string; text: string }[]; pictures: Picture[] }
-  | { kind: "asset" | "style"; key: string; ref: string; title: string; tool: string; state: string; what: string; old: boolean; views: string[]; said: string[] }
   | { kind: "question"; key: string; ref: string; title: string; text: string }
   | { kind: "check"; key: string; ref: string; title: string; cycle: string };
 
