@@ -55,13 +55,18 @@ export async function status(s: Summary): Promise<{ sent: string[]; taken: strin
   const dir = box(s);
   const out = { sent: [] as string[], taken: [] as string[], relayed: [] as string[], untaken: false, listening: null as boolean | null, working: false, ended: "", batches: [] as string[] };
   if (!dir) return out;
+  const names = await fs.readdir(dir).catch(() => [] as string[]);
   out.listening = await watched(s.local!.board!);
   if (!out.listening) {
-    const act = await fs.stat(path.join(s.local!.board!, ".active")).catch(() => null);
-    out.working = Boolean(act && Date.now() - act.mtimeMs < WORK);  // mid-turn: no watcher waits, but the turn's end brings one
+    // mid-turn no watcher waits, but the turn's end brings one: the kit marks .active on every prompt and tool — and a batch it took
+    // or relayed lately says the same, from a session started on a kit that does not mark it yet
+    const recent = async (n: string) => {
+      const st = await fs.stat(n.startsWith(".") ? path.join(s.local!.board!, n) : path.join(dir, n)).catch(() => null);
+      return Boolean(st && Date.now() - st.mtimeMs < WORK);
+    };
+    out.working = (await recent(".active")) || (await Promise.all(names.filter((n) => /\.(taken|relayed)$/.test(n)).map(recent))).some(Boolean);
     if (!out.working) out.ended = await lastEnd(s.local!.board!);
   }
-  const names = await fs.readdir(dir).catch(() => [] as string[]);
   const held = names.some((n) => n.endsWith(".taken")) ? await watched(s.local!.board!) : true;
   for (const n of names) {
     if (n.endsWith(".taken") && !held) {
