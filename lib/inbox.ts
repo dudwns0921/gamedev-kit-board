@@ -41,12 +41,21 @@ async function watched(board: string): Promise<boolean> {
   return Number.isInteger(pid) && pid > 0 && alive(pid);
 }
 
+/** Why the kit's after-turn hook last stopped waiting — the line it leaves in .rewake.log, without its time and pid. */
+async function lastEnd(board: string): Promise<string> {
+  const line = (await fs.readFile(path.join(board, ".rewake.log"), "utf8").catch(() => "")).trim();
+  return line.split(" · ").slice(2).join(" · ");
+}
+
 /** Which keys are waiting to be taken, taken by the session, or relayed to it and being worked on (until the board stops asking them).
- *  untaken: a batch has waited long enough that no open session will take it. */
-export async function status(s: Summary): Promise<{ sent: string[]; taken: string[]; relayed: string[]; untaken: boolean; batches: string[] }> {
+ *  untaken: a batch has waited long enough that no open session will take it. listening: a watcher of the kit holds the game now —
+ *  answers sent wake its session; when none does, ended says why the last one stopped. */
+export async function status(s: Summary): Promise<{ sent: string[]; taken: string[]; relayed: string[]; untaken: boolean; listening: boolean | null; ended: string; batches: string[] }> {
   const dir = box(s);
-  const out = { sent: [] as string[], taken: [] as string[], relayed: [] as string[], untaken: false, batches: [] as string[] };
+  const out = { sent: [] as string[], taken: [] as string[], relayed: [] as string[], untaken: false, listening: null as boolean | null, ended: "", batches: [] as string[] };
   if (!dir) return out;
+  out.listening = await watched(s.local!.board!);
+  if (!out.listening) out.ended = await lastEnd(s.local!.board!);
   const names = await fs.readdir(dir).catch(() => [] as string[]);
   const held = names.some((n) => n.endsWith(".taken")) ? await watched(s.local!.board!) : true;
   for (const n of names) {

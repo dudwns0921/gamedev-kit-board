@@ -19,6 +19,7 @@ export function follow(game: string, tell: (event: "summary" | "inbox", data: un
   let soon: ReturnType<typeof setTimeout> | null = null;
   let inboxWatch: FSWatcher | null = null;
   let boardWatch: FSWatcher | null = null;
+  let stateWatch: FSWatcher | null = null; // the kit's watcher files beside the board: .rewake · .rewake.log · .watching
   let closed = false;
 
   const lookInbox = async (s: Summary) => {
@@ -30,8 +31,10 @@ export function follow(game: string, tell: (event: "summary" | "inbox", data: un
       tell("inbox", box as Inbox);
     }
     if (again) clearTimeout(again);
-    // time alone turns a batch into "no session took it": 8 s for one not taken, a minute for one taken and never read
-    again = box.sent.length || box.taken.length ? setTimeout(() => current().then((x) => x && lookInbox(x)), box.sent.length ? 8_500 : 61_000) : null;
+    // time alone turns a batch into "no session took it": 8 s for one not taken, a minute for one taken and never read —
+    // and a monitor's beat going quiet (it touches .watching every couple of seconds) into "no session listening"
+    const wait = box.sent.length ? 8_500 : box.taken.length ? 61_000 : box.listening ? 12_000 : 0;
+    again = wait ? setTimeout(() => current().then((x) => x && lookInbox(x)), wait) : null;
   };
 
   const current = async () => (closed ? null : await summary(game));
@@ -42,13 +45,18 @@ export function follow(game: string, tell: (event: "summary" | "inbox", data: un
     if (dir === board && (inboxWatch || !dir)) return;
     inboxWatch?.close();
     boardWatch?.close();
-    inboxWatch = boardWatch = null;
+    stateWatch?.close();
+    inboxWatch = boardWatch = stateWatch = null;
     board = dir;
     if (!dir) return;
     const onInbox = () => {
       if (soon) clearTimeout(soon);
       soon = setTimeout(() => current().then((x) => x && lookInbox(x)), SETTLE);
     };
+    try {
+      stateWatch = watch(dir, (_e, name) => { if (name && [".rewake", ".rewake.log", ".watching"].includes(String(name))) onInbox(); });
+      stateWatch.on("error", () => { stateWatch?.close(); stateWatch = null; });
+    } catch { /* no board folder yet */ }
     try {
       inboxWatch = watch(path.join(dir, "inbox"), onInbox);
       inboxWatch.on("error", () => { inboxWatch?.close(); inboxWatch = null; });
@@ -99,6 +107,7 @@ export function follow(game: string, tell: (event: "summary" | "inbox", data: un
     for (const t of [again, soon, sumSoon]) if (t) clearTimeout(t);
     inboxWatch?.close();
     boardWatch?.close();
+    stateWatch?.close();
     sumWatch?.close();
   };
 }

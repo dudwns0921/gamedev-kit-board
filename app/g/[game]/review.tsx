@@ -75,8 +75,11 @@ export default function ReviewTab({ game, box, items, file, zoom, run }: {
     }
   }
 
-  const idle = run && box.untaken
-    ? <div className="card idle">No open session of this game has taken your answers. They wait in the game — open its Claude session, and it picks them up as it starts.</div> : null;
+  // whether answers sent now wake a session — told by the kit's watcher files, nothing asked of the session
+  const idle = !run || box.listening == null ? null : box.listening
+    ? <div className="listen small"><i />The game&apos;s session is listening — answers you send wake it.</div>
+    : <div className="card idle"><b>No session is listening right now</b>{box.ended ? <span className="muted"> — {box.ended}</span> : null}.
+        {" "}Send any message in the game&apos;s Claude session (or open one): it picks up what waits and listens again.{box.untaken ? " Your answers wait for it." : ""}</div>;
   if (!items.length) return <>{idle}<div className="empty">Nothing waits on you. New decisions, questions, images to approve and checks show up here as the game&apos;s session raises them.</div></>;
 
   return (
