@@ -1,51 +1,68 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ago, type Act, type Ask, type Board, type Item, type Model, type Stage, type St, type Summary } from "@/lib/board";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { at, type Act, type Inbox, type Ask, type Board, type Item, type Model, type Stage, type St, type Summary } from "@/lib/board";
 import ThemePicker from "../../theme-picker";
 import NotNeeded, { type Run } from "./not-needed";
 import ReviewTab, { type Zoom } from "./review";
 
-// One game, drawn from the data the kit sends. It asks for a newer board every 20 s and redraws in place — the open tab and stage stay.
-const EVERY = 5_000;
+// One game, drawn from the data the kit sends. The page holds one connection (/g/<game>/events) and is told the moment a newer board
+// arrives or the game's inbox changes — it redraws in place, the open tab and stage stay. Nothing asks on a clock.
+// "Refresh" reads both once more and reconnects — for when the connection dropped (a sleeping laptop, a phone on the tunnel).
 const TABS = ["overview", "review", "stages", "assets"] as const;
 type Tab = (typeof TABS)[number];
 const WORD: Record<St, string> = { done: "Done", temp: "Placeholder", none: "Not made", bad: "Problem" };
+const NONE: Inbox = { sent: [], taken: [], relayed: [], untaken: false };
 
 export default function Dashboard({ first, tab: firstTab }: { first: Summary; tab: string }) {
   const [s, setS] = useState(first);
+  const [box, setBox] = useState<Inbox>(NONE);
   const [fresh, setFresh] = useState(false);
+  const [live, setLive] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [link, setLink] = useState(0);
   const [tab, setTab] = useState<Tab>((TABS as readonly string[]).includes(firstTab) ? (firstTab as Tab) : "overview");
   const [stage, setStage] = useState<number | null>(null);
   const [zoom, setZoom] = useState<{ src: string; label: string } | null>(null);
-  const [, tick] = useState(0);
   const b = s.board as Board;
   const file = useCallback((p: string) => (p ? `/g/${s.game}/${p}` : ""), [s.game]);
+  const flash = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const has = useRef(first.received);
 
-  const refresh = useCallback(async () => {
-    const r = await fetch(`/g/${s.game}/summary`, { cache: "no-store" }).catch(() => null);
-    if (!r || !r.ok) return;
-    const next = (await r.json()) as Summary;
-    if (next.received !== s.received && next.board) {
-      setS(next);
-      setFresh(true);
-      setTimeout(() => setFresh(false), 4000);
-    }
-  }, [s.game, s.received]);
+  const take = useCallback((next: Summary) => {
+    if (!next.board || next.received === has.current) return;
+    has.current = next.received;
+    setS(next);
+    setFresh(true);
+    if (flash.current) clearTimeout(flash.current);
+    flash.current = setTimeout(() => setFresh(false), 4000);
+  }, []);
 
   useEffect(() => {
-    const id = setInterval(() => {
-      tick((n) => n + 1);
-      if (!document.hidden) refresh();
-    }, EVERY);
-    return () => clearInterval(id);
-  }, [refresh]);
+    const es = new EventSource(`/g/${s.game}/events`);
+    es.onopen = () => setLive(true);
+    es.onerror = () => setLive(es.readyState === EventSource.OPEN);
+    es.addEventListener("summary", (e) => take(JSON.parse((e as MessageEvent).data) as Summary));
+    es.addEventListener("inbox", (e) => setBox({ ...NONE, ...(JSON.parse((e as MessageEvent).data) as Inbox) }));
+    return () => es.close();
+  }, [s.game, take, link]);
+
+  const refresh = useCallback(async () => {
+    setBusy(true);
+    const [sum, inbox] = await Promise.all([
+      fetch(`/g/${s.game}/summary`, { cache: "no-store" }).catch(() => null),
+      s.local ? fetch(`/g/${s.game}/inbox`, { cache: "no-store" }).catch(() => null) : null,
+    ]);
+    if (sum?.ok) take((await sum.json()) as Summary);
+    if (inbox?.ok) setBox({ ...NONE, ...((await inbox.json()) as Inbox) });
+    if (!live) setLink((n) => n + 1); // the connection had dropped — open it again
+    setBusy(false);
+  }, [s.game, s.local, take, live]);
 
   // Acting on the game is offered only when its board came from this machine
   const run: Run | null = s.local ? async (a: Act) => {
     const r = await fetch(`/g/${s.game}/act`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(a) }).catch(() => null);
     const got = r ? ((await r.json().catch(() => null)) as { ok: boolean; said: string } | null) : null;
-    if (got?.ok) await refresh();
     return got ?? { ok: false, said: "The dashboard did not answer." };
   } : null;
 
@@ -78,7 +95,10 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
             <b>{s.name}</b>
           </div>
           <div className="right">
-            <span className={fresh ? "live new" : "live"} title={`Drawn ${s.drawn}`}><i /><span className="hide-sm">{fresh ? "Updated just now" : `Updated ${ago(s.received)}`}</span></span>
+            <span className={`live${fresh ? " new" : ""}${live ? "" : " off"}`} title={live ? `Drawn ${s.drawn} · follows the game as it changes` : "Not connected — Refresh to reconnect"}>
+              <i /><span className="hide-sm" suppressHydrationWarning>{fresh ? "Updated just now" : `Updated ${at(s.received)}`}</span>
+            </span>
+            <button className="btn ghost" onClick={refresh} disabled={busy} aria-label="Refresh" title="Read the board and the inbox again">{busy ? "…" : "↻"}</button>
             <ThemePicker />
           </div>
         </div>
@@ -99,7 +119,7 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
         ) : null}
 
         {tab === "overview" ? <Overview s={s} b={b} flow={flow} counts={counts} file={file} go={go} run={run} /> : null}
-        {tab === "review" ? <ReviewTab game={s.game} items={b.review} file={file} zoom={z} run={run} /> : null}
+        {tab === "review" ? <ReviewTab game={s.game} box={box} items={b.review} file={file} zoom={z} run={run} /> : null}
         {tab === "stages" ? <Stages b={b} sel={stage ?? flow[0]?.i ?? 0} pick={setStage} file={file} zoom={z} run={run} /> : null}
         {tab === "assets" ? <Assets a={b.assets} file={file} zoom={z} /> : null}
       </main>

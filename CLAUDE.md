@@ -40,7 +40,9 @@ four themes (system · light · dark · kit) · started by the kit's `serve`.
 Done since: **Not needed** on a decision (or an asset attempt waiting for approval) is sent to the session like any answer.
 **Answers straight to the session**: the Review tab holds everything that waits (every cycle's open decisions, the GDD's open questions, images, checks);
 "Send to the session" writes one batch into the game's `<board>/inbox/` (`lib/inbox.ts`); the kit's watcher wakes the open session for it (or tells the next one),
-and each card shows sent → taken until the board no longer asks it. The page checks every few seconds.
+and each card shows sent → taken until the board no longer asks it.
+The page never asks on a clock: it holds one connection (`/g/<game>/events`, `lib/follow.ts`) and is told when a newer board arrives or the inbox changes —
+the files are watched. Refresh (↻) reads both once more and reconnects.
 
 A batch no open session took (or one taken by a session that never read it) is shown as waiting for the next session — nothing more.
 

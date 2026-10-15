@@ -26,6 +26,10 @@ export type Ask = { title: string; text: string; from: string; decision?: { doc:
 /** The one thing the dashboard does to a game: send answers to its session (lib/act.ts). The session does the work. */
 export type Answer = { key: string; pick: string; note: string };
 
+/** Where the answers sent to a game stand, by review key: waiting to be taken, taken by the session, relayed to it and being worked on.
+ *  untaken: a batch has waited long enough that no open session will take it. */
+export type Inbox = { sent: string[]; taken: string[]; relayed: string[]; untaken: boolean };
+
 export type Act = { action: "send"; rows: Answer[] };
 
 export type Picture = { label: string; src: string; crop?: number[]; size?: number[] };
@@ -69,4 +73,11 @@ export type Summary = {
 export function ago(iso: string): string {
   const m = Math.round((Date.now() - Date.parse(iso)) / 60000);
   return m < 1 ? "just now" : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`;
+}
+
+/** When, as a time of day — today's without the date. Said once, so it never needs a clock to stay true. */
+export function at(iso: string): string {
+  const d = new Date(iso);
+  const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return d.toDateString() === new Date().toDateString() ? `at ${time}` : `${d.toLocaleDateString([], { month: "short", day: "numeric" })} ${time}`;
 }

@@ -53,7 +53,7 @@ It has no sign-in, so it is not for hosting where others can reach it.
 | `PUT /api/ingest/<game>/summary` | the board as data (`board.json`) — everything the dashboard draws |
 | `DELETE /api/ingest/<game>` | takes a game off (the next push from it puts it back) |
 | `/` | your games |
-| `/g/<game>` | one game: overview · review · stages · assets; checks for a newer board every 20 s |
+| `/g/<game>` | one game: overview · review · stages · assets; told over `/g/<game>/events` the moment a newer board arrives or its inbox changes (↻ reads again and reconnects) |
 | `/g/<game>/inbox` · `/g/<game>/act` | where sent answers stand · send answers to the game's inbox (the only thing it writes into a game) |
 
 Storage keys, in `.data/`: `games/<game>/summary.json` · `f/<hash>.<ext>`.

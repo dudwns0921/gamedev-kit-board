@@ -1,17 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import type { Picture, Review } from "@/lib/board";
+import { useEffect, useState } from "react";
+import type { Inbox, Picture, Review } from "@/lib/board";
 import NotNeeded, { type Run } from "./not-needed";
 
 export type Zoom = (src: string, label: string) => void;
 
 // Everything that waits on the user, on one page. "Send to the session" puts the answers in the game's inbox; the session is woken for them,
-// acts, and the board follows — each card shows sent → taken by the session, and leaves once the board no longer asks it.
+// acts, and the board follows — each card shows sent → taken by the session as the inbox changes (told by the dashboard's one connection),
+// and leaves once the board no longer asks it.
 // Picks are kept in this browser until sent; a question asked anew has a new key, so an old pick never answers it.
 
 type A = Record<string, { pick: string; note: string }>;
-type Box = { sent: string[]; taken: string[]; relayed?: string[]; untaken?: boolean };
 
 const GROUPS: { id: string; title: string; hit: (i: Review) => boolean; hint?: string }[] = [
   { id: "now", title: "Decisions — this cycle", hit: (i) => i.kind === "decision" && i.latest !== false },
@@ -35,12 +35,11 @@ function choices(i: Review): { pick: string; text: string; mark?: string; tag?: 
   return [{ pick: "ok", text: "OK" }, { pick: "problem", text: "Problem", no: true }];
 }
 
-export default function ReviewTab({ game, items, file, zoom, run }: {
-  game: string; items: Review[]; file: (p: string) => string; zoom: Zoom; run: Run | null;
+export default function ReviewTab({ game, box, items, file, zoom, run }: {
+  game: string; box: Inbox; items: Review[]; file: (p: string) => string; zoom: Zoom; run: Run | null;
 }) {
   const store = `board-review:${game}`;
   const [a, setA] = useState<A>({});
-  const [box, setBox] = useState<Box>({ sent: [], taken: [], relayed: [] });
   const [said, setSaid] = useState("");
   const [busy, setBusy] = useState(false);
   const pickable = Boolean(run); // a board sent from another machine has no inbox here to send to
@@ -53,18 +52,6 @@ export default function ReviewTab({ game, items, file, zoom, run }: {
     } catch { /* storage off — answers live only in this page */ }
   }, [store, items]);
 
-  // where sent answers stand — checked often while any are on their way
-  const look = useCallback(async () => {
-    if (!run) return;
-    const r = await fetch(`/g/${game}/inbox`, { cache: "no-store" }).catch(() => null);
-    if (r?.ok) setBox((await r.json()) as Box);
-  }, [game, run]);
-  useEffect(() => {
-    look();
-    const id = setInterval(() => { if (!document.hidden) look(); }, 3000);
-    return () => clearInterval(id);
-  }, [look]);
-
   function set(k: string, v: Partial<A[string]>) {
     setA((old) => {
       const next = { ...old, [k]: { ...{ pick: "", note: "" }, ...old[k], ...v } };
@@ -73,7 +60,7 @@ export default function ReviewTab({ game, items, file, zoom, run }: {
     });
   }
 
-  const working = [...box.taken, ...(box.relayed ?? [])];
+  const working = [...box.taken, ...box.relayed];
   const inFlight = new Set([...box.sent, ...working]);
   const ready = items.filter((i) => !inFlight.has(i.key) && (a[i.key]?.pick || a[i.key]?.note));
 
@@ -85,7 +72,6 @@ export default function ReviewTab({ game, items, file, zoom, run }: {
     setSaid(got.ok ? `${got.said} It is woken for them; this page follows as it works.` : got.said);
     if (got.ok) {
       setA((old) => { const next = { ...old }; ready.forEach((i) => delete next[i.key]); try { localStorage.setItem(store, JSON.stringify(next)); } catch { /* */ } return next; });
-      look();
     }
   }
 

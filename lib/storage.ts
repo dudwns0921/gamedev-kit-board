@@ -5,7 +5,7 @@ import path from "node:path";
 
 export type Stored = { body: Buffer; contentType: string };
 
-const LOCAL = path.join(process.cwd(), ".data");
+export const LOCAL = path.join(process.cwd(), ".data");
 
 export async function read(key: string): Promise<Stored | null> {
   const file = path.join(LOCAL, key);

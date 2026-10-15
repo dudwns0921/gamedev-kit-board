@@ -239,6 +239,7 @@ details > summary { cursor: pointer; color: var(--tx3); font-size: 12.5px; paddi
 .live { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--tx3); }
 .live i { width: 7px; height: 7px; border-radius: 50%; background: var(--done); }
 .live.new { color: var(--done); }
+.live.off i { background: var(--tx3); }
 
 @media (max-width: 860px) {
   .split { grid-template-columns: minmax(0, 1fr); }
