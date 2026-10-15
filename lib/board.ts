@@ -29,7 +29,19 @@ export type Answer = { key: string; pick: string; note: string };
 export type Act =
   | { action: "send"; rows: Answer[] }
   | { action: "drop-decision"; doc: string; num: string; why?: string }
-  | { action: "drop-asset"; tool: string; name: string };
+  | { action: "drop-asset"; tool: string; name: string }
+  | { action: "job-allow"; on: boolean; budget?: number }
+  | { action: "job-start" }
+  | { action: "job-stop" };
+
+/** Claude run by the dashboard on a game (lib/jobs.ts). allowed: null until the user has been asked. */
+export type JobLine = { kind: "say" | "tool" | "result"; text: string; error?: boolean; cost?: number; turns?: number };
+export type Job = {
+  allowed: boolean | null;
+  budget: number;
+  run: { id: string; status: "running" | "done" | "failed" | "stopped" | "ended"; started: string; ended?: string; cost?: number; turns?: number; said?: string } | null;
+  lines: JobLine[];
+};
 
 export type Picture = { label: string; src: string; crop?: number[]; size?: number[] };
 

@@ -2,7 +2,8 @@ import { execFile } from "node:child_process";
 import path from "node:path";
 import { promisify } from "node:util";
 import type { Act, Summary } from "./board";
-import { send } from "./inbox";
+import { send, status } from "./inbox";
+import { allow, start, stop } from "./jobs";
 
 export type { Act };
 
@@ -31,6 +32,14 @@ function command(a: Act, kit: string, root: string): string[] | string {
 
 export async function act(s: Summary, a: Act): Promise<{ ok: boolean; said: string }> {
   if (a.action === "send") return send(s, a.rows ?? []);
+  if (a.action === "job-allow") {
+    await allow(s.game, Boolean(a.on), Number(a.budget));
+    if (!a.on) return { ok: true, said: "The dashboard will not run Claude for this game." };
+    const { batches } = await status(s);
+    return batches.length ? start(s, batches) : { ok: true, said: "Allowed — it runs when you send answers and no session takes them." };
+  }
+  if (a.action === "job-start") return start(s, (await status(s)).batches);
+  if (a.action === "job-stop") return stop(s.game);
   const local = s.local;
   if (!local) return { ok: false, said: "This game's board did not come from this machine — act on it in the game's session." };
   const cmd = command(a, local.kit, local.root);

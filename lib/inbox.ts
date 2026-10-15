@@ -25,13 +25,23 @@ export async function send(s: Summary, rows: Answer[]): Promise<{ ok: boolean; s
   return { ok: true, said: `Sent ${clean.length} to the session.` };
 }
 
-/** Which keys are waiting to be taken, taken by the session, or relayed to it and being worked on (until the board stops asking them). */
-export async function status(s: Summary): Promise<{ sent: string[]; taken: string[]; relayed: string[] }> {
+const UNTAKEN = 8_000; // a batch no watcher took in this long: no session of the game is open
+
+/** Which keys are waiting to be taken, taken by the session, or relayed to it and being worked on (until the board stops asking them).
+ *  untaken: a batch has waited long enough that no open session will take it. */
+export async function status(s: Summary): Promise<{ sent: string[]; taken: string[]; relayed: string[]; untaken: boolean; batches: string[] }> {
   const dir = box(s);
-  const out = { sent: [] as string[], taken: [] as string[], relayed: [] as string[] };
+  const out = { sent: [] as string[], taken: [] as string[], relayed: [] as string[], untaken: false, batches: [] as string[] };
   if (!dir) return out;
   const names = await fs.readdir(dir).catch(() => [] as string[]);
   for (const n of names) {
+    if (n.endsWith(".json")) {
+      const at = Number(n.split("-")[0]);
+      if (Number.isFinite(at) && Date.now() - at > UNTAKEN) {
+        out.untaken = true;
+        out.batches.push(n);
+      }
+    }
     const where = n.endsWith(".json") ? out.sent : n.endsWith(".taken") ? out.taken : n.endsWith(".relayed") ? out.relayed : null;
     if (!where) continue;
     const rows = JSON.parse(await fs.readFile(path.join(dir, n), "utf8").catch(() => "[]")) as Answer[];

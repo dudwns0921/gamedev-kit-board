@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { Picture, Review } from "@/lib/board";
+import type { Job, Picture, Review } from "@/lib/board";
+import JobPanel from "./job";
 import NotNeeded, { type Run } from "./not-needed";
 
 export type Zoom = (src: string, label: string) => void;
@@ -14,7 +15,7 @@ export type Zoom = (src: string, label: string) => void;
 // Picks are kept in this browser until sent; a question asked anew has a new key, so an old pick never answers it.
 
 type A = Record<string, { pick: string; note: string }>;
-type Box = { sent: string[]; taken: string[]; relayed?: string[] };
+type Box = { sent: string[]; taken: string[]; relayed?: string[]; untaken?: boolean; job?: Job };
 
 const GROUPS: { id: string; title: string; hit: (i: Review) => boolean; hint?: string }[] = [
   { id: "now", title: "Decisions — this cycle", hit: (i) => i.kind === "decision" && i.latest !== false },
@@ -106,15 +107,17 @@ export default function ReviewTab({ game, share, items, file, zoom, run }: {
     }
   }
 
-  if (!items.length) return <div className="empty">Nothing waits on you. New decisions, questions, images to approve and checks show up here as the game&apos;s session raises them.</div>;
+  const job = mode === "direct" && run ? <JobPanel job={box.job ?? null} untaken={Boolean(box.untaken)} run={run} look={look} /> : null;
+  if (!items.length) return <>{job}<div className="empty">Nothing waits on you. New decisions, questions, images to approve and checks show up here as the game&apos;s session raises them.</div></>;
 
   return (
     <>
+      {job}
       <div className="card how">
         {mode === "direct" ? (
           <ol>
             <li><b>Pick an answer</b> on each card you want to settle — a note is optional.</li>
-            <li><b>Send to the session</b> (bottom bar). The game&apos;s open session is woken for them — or the next one you open.</li>
+            <li><b>Send to the session</b> (bottom bar). The game&apos;s open session is woken for them — with none open, this dashboard runs Claude for them, once you allow it.</li>
             <li>It records and works on them; each card shows where it stands, and leaves once done.</li>
           </ol>
         ) : mode === "link" ? (

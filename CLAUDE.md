@@ -41,7 +41,12 @@ Done since: **Not needed** on a decision (or an asset attempt waiting for approv
 "Send to the session" writes one batch into the game's `<board>/inbox/` (`lib/inbox.ts`); the kit's watcher wakes the open session for it (or tells the next one),
 and each card shows sent → taken until the board no longer asks it. The page checks every few seconds.
 
+Done since: **Claude run here** (`lib/jobs.ts`): a batch no open session took in 8 s is run by Claude Code in the game's folder (`claude -p`, stream-json log in `.data/jobs/`),
+once the user allowed it for that game on the consent card (with a dollar limit per run, `--max-budget-usd`). One run per game; Stop kills its process group; a run is started
+by itself once per batch (one that ended without taking its batch waits for Run again). Outward actions are closed twice: tool rules here (no git push · gh · curl · WebFetch) and the kit's
+scripts, which refuse to upload, push or post while `GAMEDEV_KIT_JOB` is set. `serve` passes `CLAUDE_BIN`.
+
 Next, in order:
-1. Confirm in use that the desktop app wakes for a batch (the kit's monitor, or its after-turn hook); if neither, say so in the Review tab.
-2. **No open session needed**: when nothing is watching a game, run Claude Code here (`claude -p` or the Agent SDK) on its inbox, with a fixed set of allowed tools — Jenkins-like jobs with their log on the page.
-3. Views a chat cannot give: change over time (decisions → build → play per cycle), all games side by side, a notification when a decision is waiting.
+1. Confirm in use that the desktop app wakes for a batch (the kit's monitor, or its after-turn hook), and that a real run ends at the next stopping point.
+2. Views a chat cannot give: change over time (decisions → build → play per cycle), all games side by side, a notification when a decision is waiting.
+3. The Rules page: the user's rules from every game (`feedback.py list --all --json` · `state --json`), what went to the kit, what the kit took in — and dropping a copy the kit now carries.

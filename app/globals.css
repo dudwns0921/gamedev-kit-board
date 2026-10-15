@@ -264,3 +264,20 @@ details > summary { cursor: pointer; color: var(--tx3); font-size: 12.5px; paddi
 .q .state { align-self: flex-start; font-size: 11.5px; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
 .q .state.sent { background: var(--warn-soft); color: color-mix(in srgb, var(--temp) 70%, var(--tx)); }
 .q .state.taken { background: var(--accent-soft); color: var(--accent); }
+
+/* Claude run by the dashboard */
+.job { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.job.ask { border-color: var(--accent); }
+.job ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+.job .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.job .act { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+.job .num { width: 72px; margin-left: 8px; font: 15px var(--sans); padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border2); background: transparent; color: inherit; }
+.job .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--none); flex: none; }
+.job .dot.running { background: var(--accent); animation: jobpulse 1.4s ease-in-out infinite; }
+.job .dot.done { background: var(--done); }
+.job .dot.failed { background: var(--bad); }
+.job .log { margin: 0; padding: 10px 12px 10px 28px; max-height: 320px; overflow: auto; font-size: 13px; border-radius: 10px; background: var(--surface2); display: flex; flex-direction: column; gap: 4px; }
+.job .log code { font-size: 12px; overflow-wrap: anywhere; }
+.job .log .result { font-weight: 600; }
+@keyframes jobpulse { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .job .dot.running { animation: none; } }
