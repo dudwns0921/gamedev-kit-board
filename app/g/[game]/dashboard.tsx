@@ -66,7 +66,7 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
 
   const flow = b.stages.filter((x) => !x.common);
   const z: Zoom = (src, label) => setZoom({ src, label });
-  const counts = { review: b.review.length, problems: s.counts.problems, old: s.counts.old_style ?? b.assets.models.filter((m) => m.old).length };
+  const counts = { review: b.review.length, problems: s.counts.problems };
 
   return (
     <>
@@ -89,7 +89,6 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
             <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? "on" : ""} onClick={() => go(t)}>
               {t[0].toUpperCase() + t.slice(1)}
               {t === "review" && counts.review ? <span className="count">{counts.review}</span> : null}
-              {t === "assets" && counts.old ? <span className="count calm">{counts.old} old</span> : null}
             </button>
           ))}
           <a className="small muted" href={`/g/${s.game}/kit`} style={{ marginLeft: "auto", alignSelf: "center", whiteSpace: "nowrap" }}>Kit page ↗</a>
@@ -98,7 +97,7 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
         {tab === "overview" ? <Overview s={s} b={b} flow={flow} counts={counts} file={file} go={go} run={run} /> : null}
         {tab === "review" ? <ReviewTab game={s.game} share={s.share} items={b.review} file={file} zoom={z} run={run} /> : null}
         {tab === "stages" ? <Stages b={b} sel={stage ?? flow[0]?.i ?? 0} pick={setStage} file={file} zoom={z} run={run} /> : null}
-        {tab === "assets" ? <Assets a={b.assets} file={file} zoom={z} go={go} /> : null}
+        {tab === "assets" ? <Assets a={b.assets} file={file} zoom={z} /> : null}
       </main>
       {zoom ? (
         <div className="zoombox" onClick={() => setZoom(null)} role="dialog" aria-label={zoom.label}>
@@ -155,7 +154,7 @@ function Legend() {
 }
 
 function Overview({ s, b, flow, counts, file, go, run }: {
-  s: Summary; b: Board; flow: Stage[]; counts: { review: number; problems: number; old: number };
+  s: Summary; b: Board; flow: Stage[]; counts: { review: number; problems: number };
   file: (p: string) => string; go: (t: Tab, st?: number | null) => void; run: Run | null;
 }) {
   const now = b.cycles[b.cycles.length - 1];
@@ -169,9 +168,6 @@ function Overview({ s, b, flow, counts, file, go, run }: {
         </a>
         <div className={`card kpi${counts.problems ? " alert" : ""}`}><span className="lab">Problems</span><b>{counts.problems}</b></div>
         <div className="card kpi"><span className="lab">Not made</span><b>{s.counts.not_made}</b><small>placeholders {s.counts.placeholders}</small></div>
-        <a className={`card kpi${counts.old ? " warn" : ""}`} href="?tab=assets" onClick={(e) => { e.preventDefault(); go("assets"); }}>
-          <span className="lab">Old-style assets</span><b>{counts.old}</b><small>{counts.old ? "to keep or redraw" : "all in today's style"}</small>
-        </a>
       </div>
 
       <div className="split">
@@ -371,22 +367,12 @@ const SHOW = [
   { id: "game", label: "In the game", hit: (m: Model) => m.state === "in the game" },
 ] as const;
 
-function Assets({ a, file, zoom, go }: { a: Board["assets"]; file: (p: string) => string; zoom: Zoom; go: (t: Tab) => void }) {
-  const old = a.models.filter((m) => m.old).length;
-  const [show, setShow] = useState<(typeof SHOW)[number]["id"]>(old ? "old" : "all");
+function Assets({ a, file, zoom }: { a: Board["assets"]; file: (p: string) => string; zoom: Zoom }) {
+  const [show, setShow] = useState<(typeof SHOW)[number]["id"]>("all");
   const rule = SHOW.find((x) => x.id === show)!;
   const shown = useMemo(() => a.models.filter(rule.hit), [a.models, rule]);
   return (
     <>
-      {old ? (
-        <div className="card how">
-          <div>
-            <b>{old} asset{old > 1 ? "s were" : " was"} drawn under an older art style.</b>
-            <div className="small muted">Each waits in Review: keep its look, or redraw it in today&apos;s style. The board follows as soon as the game&apos;s session acts on it.</div>
-          </div>
-          <button className="btn primary go" onClick={() => go("review")}>Decide in Review →</button>
-        </div>
-      ) : null}
       <div className="split">
         <section className="sec">
           <div className="sec-h"><h2>Models · images</h2><span className="lab">{a.models.length}</span></div>

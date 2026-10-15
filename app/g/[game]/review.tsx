@@ -16,7 +16,6 @@ type A = Record<string, { pick: string; note: string }>;
 const GROUPS: { kind: Review["kind"]; title: string }[] = [
   { kind: "decision", title: "Decisions" },
   { kind: "asset", title: "Assets to approve" },
-  { kind: "style", title: "Drawn in an old art style" },
   { kind: "check", title: "Check by playing" },
 ];
 
@@ -99,7 +98,6 @@ export default function ReviewTab({ game, share, items, file, zoom, run }: {
         return (
           <section key={g.kind} className="sec">
             <div className="sec-h"><h2>{g.title}</h2><span className="lab">{its.length}{cyc?.cycle ? ` · cycle ${cyc.cycle}` : ""}</span></div>
-            {g.kind === "style" ? <div className="small muted">The art style changed after these were drawn. Keep marks one as today&apos;s style; redraw makes new images to approve (a model or sprite sheet is remade after that).</div> : null}
             <div className="grid">
               {its.map((i) => {
                 const v = a[i.key];

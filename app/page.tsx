@@ -26,7 +26,6 @@ function Game({ s }: { s: Summary }) {
       <div className="chips">
         {c.review ? <span className="chip bad">Waiting on you {c.review}</span> : <span className="chip acc">Nothing waits</span>}
         {c.problems ? <span className="chip bad">Problems {c.problems}</span> : null}
-        {c.old_style ? <span className="chip warn">Old style {c.old_style}</span> : null}
         {c.not_made ? <span className="chip">Not made {c.not_made}</span> : null}
         {c.placeholders ? <span className="chip">Placeholders {c.placeholders}</span> : null}
       </div>
@@ -58,7 +57,6 @@ export default async function Home() {
               <div className="card kpi"><span className="lab">Games</span><b>{all.length}</b></div>
               <div className={`card kpi${sum("review") ? " alert" : ""}`}><span className="lab">Waiting on you</span><b>{sum("review")}</b><small>answers, approvals, checks</small></div>
               <div className={`card kpi${sum("problems") ? " alert" : ""}`}><span className="lab">Problems</span><b>{sum("problems")}</b></div>
-              <div className={`card kpi${sum("old_style") ? " warn" : ""}`}><span className="lab">Old-style assets</span><b>{sum("old_style")}</b></div>
             </div>
             {waiting.length ? (
               <section className="sec">
