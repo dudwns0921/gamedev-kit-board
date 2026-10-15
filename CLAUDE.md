@@ -34,9 +34,9 @@ End to end: run it (README "Run it by hand"), point a sample game at it, `board.
 Done: sign-in · the dashboard of games (what waits across games) · one game drawn from data (overview · review · stages · assets), redrawn in place as a newer board arrives ·
 four themes (system · light · dark · kit) · the kit's own page at `/g/<game>/kit` · started by the kit's `serve`.
 
-Next, in order:
 Done since: **Not needed** on a decision (or an asset attempt waiting for approval) withdraws it in the game itself and redraws the board.
 
+Next, in order:
 1. **Answers straight to the game.** A tap on the Review tab is written into the game's folder (the app runs on the same machine), and the session picks it up on its next turn — no copying.
 2. **Wake the session.** A Claude Code channel (an MCP server that puts a message into a running session) tells the game's session that answers arrived, so it acts at once.
 3. Views a chat cannot give: change over time (decisions → build → play per cycle), all games side by side, a notification when a decision is waiting.
