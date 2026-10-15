@@ -16,17 +16,18 @@ The kit draws the board in each game repository and, at the end of every Claude 
 
 ## Connect a game
 
-On your machine, once:
+On your machine, once — a file outside every repository, as the kit keeps its other keys:
 
-```json
-// ~/.claude/settings.json
-{ "env": { "GAMEDEV_BOARD_TOKEN": "<the same value as INGEST_TOKEN>" } }
+```
+# ~/.config/gamedev-kit/board.env
+GAMEDEV_BOARD_URL=https://<your app>.vercel.app
+GAMEDEV_BOARD_TOKEN=<the same value as INGEST_TOKEN>
 ```
 
 In each game repository, in `kit.config.json`:
 
 ```json
-"board": { "service": { "url": "https://<your app>.vercel.app", "game": "<lowercase-id>" } }
+"board": { "service": { "game": "<lowercase-id>" } }
 ```
 
 Then, in that game, `python3 <kit>/skills/board/scripts/board.py push` once (or just let a turn end). The game appears in the list.
@@ -38,7 +39,7 @@ npm install
 APP_PASSWORD=pw SESSION_SECRET=dev INGEST_TOKEN=dev npm run dev
 ```
 
-Without `BLOB_READ_WRITE_TOKEN` the data goes to `.data/`. Point a game at `http://localhost:3000` with `GAMEDEV_BOARD_TOKEN=dev` to try it.
+Without `BLOB_READ_WRITE_TOKEN` the data goes to `.data/`. Point a game at it with `GAMEDEV_BOARD_URL=http://localhost:3000` and `GAMEDEV_BOARD_TOKEN=dev` (in the environment or the file above) to try it.
 
 ## How it fits together
 
