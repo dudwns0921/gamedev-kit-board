@@ -54,3 +54,9 @@ export function ingestOk(req: Request): boolean {
 
 export const GAME = /^[a-z0-9][a-z0-9-]{0,62}$/;
 export const FILE = /^[0-9a-f]{16}\.[a-z0-9]{1,5}$/;
+
+/** A failed write, told to the kit (only a caller holding the token gets here), so the cause shows where `board.py push` runs. */
+export function failed(err: unknown, store: string): Response {
+  const why = err instanceof Error ? err.message : String(err);
+  return new Response(`could not store in ${store}: ${why}`, { status: 500 });
+}

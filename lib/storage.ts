@@ -36,6 +36,9 @@ export async function read(key: string): Promise<Stored | null> {
   }
 }
 
+/** Which store this deployment writes to — said in an error, so a missing Blob connection is plain to see. */
+export const where = () => (useBlob() ? "Vercel Blob (private)" : "the local .data folder — no BLOB_READ_WRITE_TOKEN on this deployment");
+
 export async function write(key: string, body: Buffer, contentType: string): Promise<void> {
   if (useBlob()) {
     await put(key, body, { access: "private", addRandomSuffix: false, allowOverwrite: true, contentType });
