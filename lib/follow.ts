@@ -33,7 +33,8 @@ export function follow(game: string, tell: (event: "summary" | "inbox", data: un
     if (again) clearTimeout(again);
     // time alone turns a batch into "no session took it": 8 s for one not taken, a minute for one taken and never read —
     // and a monitor's beat going quiet (it touches .watching every couple of seconds) into "no session listening"
-    const wait = box.sent.length ? 8_500 : box.taken.length ? 61_000 : box.listening ? 12_000 : box.working ? 60_000 : 0;
+    const waits = [box.sent.length ? 8_500 : 0, box.taken.length ? 61_000 : 0, box.listening ? 12_000 : 0, box.working ? 60_000 : 0].filter(Boolean);
+    const wait = waits.length ? Math.min(...waits) : 0;
     again = wait ? setTimeout(() => current().then((x) => x && lookInbox(x)), wait) : null;
   };
 

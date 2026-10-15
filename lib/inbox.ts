@@ -42,18 +42,18 @@ async function watched(board: string): Promise<boolean> {
   return Number.isInteger(pid) && pid > 0 && alive(pid);
 }
 
-/** Why the kit's after-turn hook last stopped waiting — the line it leaves in .rewake.log, without its time and pid. */
-async function lastEnd(board: string): Promise<string> {
-  const line = (await fs.readFile(path.join(board, ".rewake.log"), "utf8").catch(() => "")).trim();
-  return line.split(" · ").slice(2).join(" · ");
+/** Why and when the kit's after-turn hook last stopped waiting — the line it leaves in .rewake.log ("<time> · pid <n> · <why>"). */
+async function lastEnd(board: string): Promise<{ why: string; at: string }> {
+  const parts = (await fs.readFile(path.join(board, ".rewake.log"), "utf8").catch(() => "")).trim().split(" · ");
+  return { why: parts.slice(2).join(" · "), at: parts.length > 2 ? parts[0] : "" };
 }
 
 /** Which keys are waiting to be taken, taken by the session, or relayed to it and being worked on (until the board stops asking them).
  *  untaken: a batch has waited long enough that no open session will take it. listening: a watcher of the kit holds the game now —
  *  answers sent wake its session; when none does, ended says why the last one stopped. */
-export async function status(s: Summary): Promise<{ sent: string[]; taken: string[]; relayed: string[]; untaken: boolean; listening: boolean | null; working: boolean; ended: string; batches: string[] }> {
+export async function status(s: Summary): Promise<{ sent: string[]; taken: string[]; relayed: string[]; untaken: boolean; listening: boolean | null; working: boolean; ended: string; endedAt: string; batches: string[] }> {
   const dir = box(s);
-  const out = { sent: [] as string[], taken: [] as string[], relayed: [] as string[], untaken: false, listening: null as boolean | null, working: false, ended: "", batches: [] as string[] };
+  const out = { sent: [] as string[], taken: [] as string[], relayed: [] as string[], untaken: false, listening: null as boolean | null, working: false, ended: "", endedAt: "", batches: [] as string[] };
   if (!dir) return out;
   const names = await fs.readdir(dir).catch(() => [] as string[]);
   out.listening = await watched(s.local!.board!);
@@ -64,8 +64,10 @@ export async function status(s: Summary): Promise<{ sent: string[]; taken: strin
       const st = await fs.stat(n.startsWith(".") ? path.join(s.local!.board!, n) : path.join(dir, n)).catch(() => null);
       return Boolean(st && Date.now() - st.mtimeMs < WORK);
     };
-    out.working = (await recent(".active")) || (await Promise.all(names.filter((n) => /\.(taken|relayed)$/.test(n)).map(recent))).some(Boolean);
-    if (!out.working) out.ended = await lastEnd(s.local!.board!);
+    const marks = await fs.stat(path.join(s.local!.board!, ".active")).then(() => true, () => false);
+    out.working = marks ? await recent(".active")  // a kit that marks it is judged by its mark alone
+      : (await Promise.all(names.filter((n) => /\.(taken|relayed)$/.test(n)).map(recent))).some(Boolean);
+    if (!out.working) ({ why: out.ended, at: out.endedAt } = await lastEnd(s.local!.board!));
   }
   const held = names.some((n) => n.endsWith(".taken")) ? await watched(s.local!.board!) : true;
   for (const n of names) {

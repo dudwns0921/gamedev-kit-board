@@ -5,6 +5,7 @@ import { at, type Act, type Inbox, type Ask, type Board, type Item, type Model, 
 import ThemePicker from "../../theme-picker";
 import NotNeeded, { type Run } from "./not-needed";
 import ReviewTab, { type Zoom } from "./review";
+import { SessionPill, SessionToasts } from "./session";
 
 // One game, drawn from the data the kit sends. The page holds one connection (/g/<game>/events) and is told the moment a newer board
 // arrives or the game's inbox changes — it redraws in place, the open tab and stage stay. Nothing asks on a clock.
@@ -37,6 +38,13 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
     if (flash.current) clearTimeout(flash.current);
     flash.current = setTimeout(() => setFresh(false), 4000);
   }, []);
+
+  // where the inbox and the session stand, read once as the page opens — the connection below tells every change after
+  // (and a page whose connection a proxy holds back still says whether a session is listening)
+  useEffect(() => {
+    if (!s.local) return;
+    fetch(`/g/${s.game}/inbox`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((x) => x && setBox((b) => (b === NONE ? { ...NONE, ...(x as Inbox) } : b))).catch(() => {});
+  }, [s.game, s.local]);
 
   useEffect(() => {
     const es = new EventSource(`/g/${s.game}/events`);
@@ -95,6 +103,7 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
             <b>{s.name}</b>
           </div>
           <div className="right">
+            <SessionPill box={box} />
             <span className={`live${fresh ? " new" : ""}${live ? "" : " off"}`} title={live ? `Drawn ${s.drawn} · follows the game as it changes` : "Not connected — Refresh to reconnect"}>
               <i /><span className="hide-sm" suppressHydrationWarning>{fresh ? "Updated just now" : `Updated ${at(s.received)}`}</span>
             </span>
@@ -123,6 +132,7 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
         {tab === "stages" ? <Stages b={b} sel={stage ?? flow[0]?.i ?? 0} pick={setStage} file={file} zoom={z} run={run} /> : null}
         {tab === "assets" ? <Assets a={b.assets} file={file} zoom={z} /> : null}
       </main>
+      <SessionToasts box={box} />
       {zoom ? (
         <div className="zoombox" onClick={() => setZoom(null)} role="dialog" aria-label={zoom.label}>
           <img src={zoom.src} alt="" />

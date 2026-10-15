@@ -1,4 +1,5 @@
 import { ago, games, type Summary } from "@/lib/games";
+import { status } from "@/lib/inbox";
 import ThemePicker from "./theme-picker";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +10,10 @@ function Ring({ p }: { p: number }) {
   return <div className="ring" style={{ ["--p" as string]: p }}><b>{p}</b></div>;
 }
 
-function Game({ s }: { s: Summary }) {
+// The game's Claude session, as the game page's pill says it — read once as the page is drawn.
+const SESSION = { on: "Session connected", work: "Session at work", off: "No session" } as const;
+
+function Game({ s, session }: { s: Summary; session: keyof typeof SESSION | null }) {
   const c = { ...zero, ...s.counts };
   return (
     <a className="card link game" href={`/g/${s.game}`}>
@@ -19,6 +23,7 @@ function Game({ s }: { s: Summary }) {
           <span className="lab">{s.now ? `Cycle ${s.now.cycle} · ${s.now.stage}` : "No cycle yet"}</span>
           <h2>{s.name}</h2>
           {s.now ? <div className="small muted">{s.now.name}</div> : null}
+          {session ? <span className={`spill ${session}`} style={{ marginTop: 8 }}><i />{SESSION[session]}</span> : null}
         </div>
       </div>
       <div className="stages">{(s.stages ?? []).map((st, i) => <div key={i} title={`${st.name} · ${st.complete ?? "—"}%`}><i style={{ width: `${st.complete ?? 0}%` }} /></div>)}</div>
@@ -35,6 +40,11 @@ function Game({ s }: { s: Summary }) {
 
 export default async function Home() {
   const all = await games();
+  const session = Object.fromEntries(await Promise.all(all.map(async (s) => {
+    if (!s.local?.board) return [s.game, null] as const;
+    const b = await status(s);
+    return [s.game, b.listening ? "on" : b.working ? "work" : "off"] as const;
+  })));
   const sum = (k: keyof typeof zero) => all.reduce((n, s) => n + ((s.counts ?? zero)[k] ?? 0), 0);
   const waiting = all.filter((s) => s.counts?.review);
   return (
@@ -72,7 +82,7 @@ export default async function Home() {
             ) : null}
             <section className="sec">
               <div className="sec-h"><h2>Games</h2><span className="lab">newest first</span></div>
-              <div className="grid">{all.map((s) => <Game key={s.game} s={s} />)}</div>
+              <div className="grid">{all.map((s) => <Game key={s.game} s={s} session={session[s.game] ?? null} />)}</div>
             </section>
           </>
         ) : (
