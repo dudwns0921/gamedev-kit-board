@@ -34,7 +34,8 @@ export default function JobPanel({ job, untaken, run, look }: { job: Job | null;
             and stops at the next point where you have to answer or play — every question comes back here as a decision.</li>
           <li><b>It may</b> edit the game&apos;s files, run its builds and tests, and commit — and spend on what you approved here (an asset you approved).</li>
           <li><b>It may not</b> upload a build, push, open issues or send anything off this machine — those come back as decisions.</li>
-          <li>One run at a time for this game; you can stop it here. Each run is a fresh session, and costs what it uses — at most the limit below.</li>
+          <li>One run at a time for this game; you can stop it here. Each run is a fresh session on the Claude login of this machine —
+            with a subscription it counts against your plan&apos;s usage like any session, with an API key it is billed. Either way it stops at the limit below (an estimate in dollars).</li>
         </ul>
         <label className="small">Limit per run, in dollars <input className="num" inputMode="decimal" placeholder={String(job.budget)} value={budget}
           onChange={(e) => setBudget(e.target.value.replace(/[^\d.]/g, ""))} /></label>
@@ -48,7 +49,7 @@ export default function JobPanel({ job, untaken, run, look }: { job: Job | null;
   }
 
   const r = job.run;
-  const cost = r?.cost !== undefined ? ` · $${r.cost.toFixed(2)}` : "";
+  const cost = r?.cost !== undefined ? ` · ≈ $${r.cost.toFixed(2)} of usage` : "";
   return (
     <div className={`card job${r?.status === "running" ? " on" : ""}`}>
       {r ? (
@@ -73,7 +74,7 @@ export default function JobPanel({ job, untaken, run, look }: { job: Job | null;
       ) : null}
       <div className="small muted">
         {job.allowed
-          ? <>When no session takes your answers, this dashboard runs Claude for them (at most ${job.budget} a run). <button className="link-btn" disabled={busy} onClick={() => go({ action: "job-allow", on: false })}>Turn off</button></>
+          ? <>When no session takes your answers, this dashboard runs Claude for them (up to about ${job.budget} of usage a run). <button className="link-btn" disabled={busy} onClick={() => go({ action: "job-allow", on: false })}>Turn off</button></>
           : job.allowed === false
             ? <>{untaken ? "No session has taken your answers — open the game's session, or " : "This dashboard does not run Claude for this game. "}<button className="link-btn" disabled={busy} onClick={() => go({ action: "job-allow", on: true, budget: job.budget })}>let it run Claude here</button></>
             : "When no session takes your answers, you will be asked whether this dashboard may run Claude for them."}
