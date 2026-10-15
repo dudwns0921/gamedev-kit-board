@@ -35,11 +35,12 @@ export type Act = { action: "send"; rows: Answer[] };
 
 export type Picture = { label: string; src: string; crop?: number[]; size?: number[] };
 
-export type Review =
+export type Review = (
   | { kind: "decision"; key: string; ref: string; title: string; cycle: string; doc?: string; latest?: boolean; who: string; recommend: string; proxy: string;
       options: { mark: string; text: string }[]; pictures: Picture[] }
   | { kind: "question"; key: string; ref: string; title: string; text: string }
-  | { kind: "check"; key: string; ref: string; title: string; cycle: string };
+  | { kind: "check"; key: string; ref: string; title: string; cycle: string }
+) & { later?: string };  // put off to a later cycle by the session — waiting, not in hand
 
 export type Model = { name: string; img: string; tool: string; st: St; state: string; old: boolean; sample: boolean; reference: boolean; what: string; rejected: number };
 

@@ -264,6 +264,7 @@ details > summary { cursor: pointer; color: var(--tx3); font-size: 12.5px; paddi
 .q .state { align-self: flex-start; font-size: 11.5px; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
 .q .state.sent { background: var(--warn-soft); color: color-mix(in srgb, var(--temp) 70%, var(--tx)); }
 .q .state.taken { background: var(--accent-soft); color: var(--accent); }
+.q .state.later { background: var(--surface2); color: var(--tx2); }
 
 .idle { margin-bottom: 16px; border-color: var(--temp); background: var(--warn-soft); }
 
