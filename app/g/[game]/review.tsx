@@ -105,6 +105,7 @@ export default function ReviewTab({ game, box, items, file, zoom, run }: {
                     {i.kind === "decision" ? <span className="lab">{[i.latest === false ? `cycle ${i.cycle}` : "", i.who, i.proxy ? "decided for you" : ""].filter(Boolean).join(" · ")}</span> : null}
                     <h3>{i.kind === "decision" ? <code>{i.ref}</code> : null}{i.title}</h3>
                     {i.kind === "question" && i.text ? <div className="small muted">{i.text}</div> : null}
+                    {i.kind === "decision" && i.why ? <div className="why">{i.why}</div> : null}
                     {i.kind === "decision" && i.pictures.length ? <div className="figs">{i.pictures.map((p, n) => <Pic key={n} p={p} file={file} zoom={zoom} />)}</div> : null}
                     <div className={`opts${i.kind === "decision" ? "" : " pair"}`}>
                       {opts.map((o) => (
@@ -114,6 +115,8 @@ export default function ReviewTab({ game, box, items, file, zoom, run }: {
                         </button>
                       ))}
                     </div>
+                    {i.kind === "decision" && i.reason && i.recommend ? <div className="small muted">Recommended {i.recommend} — {i.reason}</div> : null}
+                    {i.kind === "decision" && i.detail ? <details className="detail small"><summary>Detail</summary><div>{i.detail}</div></details> : null}
                     {pickable && !where ? <textarea className="note" rows={1}
                       placeholder={i.kind === "question" ? "Your answer" : i.kind === "decision" ? "Note (optional)" : "What did you see?"}
                       value={v?.note ?? ""} onChange={(e) => set(i.key, { note: e.target.value })} /> : null}

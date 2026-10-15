@@ -37,7 +37,8 @@ export type Picture = { label: string; src: string; crop?: number[]; size?: numb
 
 export type Review = (
   | { kind: "decision"; key: string; ref: string; title: string; cycle: string; doc?: string; latest?: boolean; who: string; recommend: string; proxy: string;
-      options: { mark: string; text: string }[]; pictures: Picture[] }
+      options: { mark: string; text: string }[]; pictures: Picture[];
+      why?: string; detail?: string; reason?: string }  // what led to it · the numbers and names behind it (folded) · why the recommendation
   | { kind: "question"; key: string; ref: string; title: string; text: string }
   | { kind: "check"; key: string; ref: string; title: string; cycle: string }
 ) & { later?: string };  // put off to a later cycle by the session — waiting, not in hand

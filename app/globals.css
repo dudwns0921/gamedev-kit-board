@@ -306,3 +306,6 @@ details > summary { cursor: pointer; color: var(--tx3); font-size: 12.5px; paddi
 @keyframes spulse { 50% { opacity: .3; } }
 @media (prefers-reduced-motion: reduce) { .spill.work i, .toast { animation: none; } }
 @media (min-width: 720px) { .note { font-size: 13px; } }  /* under 16px, iOS zooms the page when a field takes focus */
+.q .why { color: var(--tx2); font-size: 14px; margin-top: -2px; }
+.q .detail summary { cursor: pointer; color: var(--tx3); }
+.q .detail div { margin-top: 4px; color: var(--tx2); font-family: var(--mono); font-size: 12px; white-space: pre-wrap; }
