@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ago, type Board, type Item, type Model, type Stage, type St, type Summary } from "@/lib/board";
+import { ago, type Act, type Ask, type Board, type Item, type Model, type Stage, type St, type Summary } from "@/lib/board";
 import ThemePicker from "../../theme-picker";
+import NotNeeded, { type Run } from "./not-needed";
 import ReviewTab, { type Zoom } from "./review";
 
 // One game, drawn from the data the kit sends. It asks for a newer board every 20 s and redraws in place — the open tab and stage stay.
@@ -21,21 +22,32 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
   const b = s.board as Board;
   const file = useCallback((p: string) => (p ? `/g/${s.game}/${p}` : ""), [s.game]);
 
+  const refresh = useCallback(async () => {
+    const r = await fetch(`/g/${s.game}/summary`, { cache: "no-store" }).catch(() => null);
+    if (!r || !r.ok) return;
+    const next = (await r.json()) as Summary;
+    if (next.received !== s.received && next.board) {
+      setS(next);
+      setFresh(true);
+      setTimeout(() => setFresh(false), 4000);
+    }
+  }, [s.game, s.received]);
+
   useEffect(() => {
-    const id = setInterval(async () => {
+    const id = setInterval(() => {
       tick((n) => n + 1);
-      if (document.hidden) return;
-      const r = await fetch(`/g/${s.game}/summary`, { cache: "no-store" }).catch(() => null);
-      if (!r || !r.ok) return;
-      const next = (await r.json()) as Summary;
-      if (next.received !== s.received && next.board) {
-        setS(next);
-        setFresh(true);
-        setTimeout(() => setFresh(false), 4000);
-      }
+      if (!document.hidden) refresh();
     }, EVERY);
     return () => clearInterval(id);
-  }, [s.game, s.received]);
+  }, [refresh]);
+
+  // Acting on the game is offered only when its board came from this machine
+  const run: Run | null = s.local ? async (a: Act) => {
+    const r = await fetch(`/g/${s.game}/act`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(a) }).catch(() => null);
+    const got = r ? ((await r.json().catch(() => null)) as { ok: boolean; said: string } | null) : null;
+    if (got?.ok) await refresh();
+    return got ?? { ok: false, said: "The dashboard did not answer." };
+  } : null;
 
   useEffect(() => {
     const off = (ev: KeyboardEvent) => ev.key === "Escape" && setZoom(null);
@@ -83,9 +95,9 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
           <a className="small muted" href={`/g/${s.game}/kit`} style={{ marginLeft: "auto", alignSelf: "center", whiteSpace: "nowrap" }}>Kit page ↗</a>
         </nav>
 
-        {tab === "overview" ? <Overview s={s} b={b} flow={flow} counts={counts} file={file} go={go} /> : null}
-        {tab === "review" ? <ReviewTab game={s.game} share={s.share} items={b.review} file={file} zoom={z} /> : null}
-        {tab === "stages" ? <Stages b={b} sel={stage ?? flow[0]?.i ?? 0} pick={setStage} file={file} zoom={z} /> : null}
+        {tab === "overview" ? <Overview s={s} b={b} flow={flow} counts={counts} file={file} go={go} run={run} /> : null}
+        {tab === "review" ? <ReviewTab game={s.game} share={s.share} items={b.review} file={file} zoom={z} run={run} /> : null}
+        {tab === "stages" ? <Stages b={b} sel={stage ?? flow[0]?.i ?? 0} pick={setStage} file={file} zoom={z} run={run} /> : null}
         {tab === "assets" ? <Assets a={b.assets} file={file} zoom={z} go={go} /> : null}
       </main>
       {zoom ? (
@@ -142,9 +154,9 @@ function Legend() {
   );
 }
 
-function Overview({ s, b, flow, counts, file, go }: {
+function Overview({ s, b, flow, counts, file, go, run }: {
   s: Summary; b: Board; flow: Stage[]; counts: { review: number; problems: number; old: number };
-  file: (p: string) => string; go: (t: Tab, st?: number | null) => void;
+  file: (p: string) => string; go: (t: Tab, st?: number | null) => void; run: Run | null;
 }) {
   const now = b.cycles[b.cycles.length - 1];
   const rest = b.stages.find((x) => x.common);
@@ -211,15 +223,7 @@ function Overview({ s, b, flow, counts, file, go }: {
           <div className="card">
             {b.asks.length ? (
               <ul className="list">
-                {b.asks.slice(0, 8).map((q, i) => (
-                  <li key={i}>
-                    <i className="dot st-bad" />
-                    <div className="t">
-                      <b>{q.title}</b>
-                      <small>{q.text ? q.text + " · " : ""}{q.from}</small>
-                    </div>
-                  </li>
-                ))}
+                {b.asks.slice(0, 8).map((q, i) => <AskRow key={i} q={q} run={run} />)}
                 {b.asks.length > 8 ? <li><button className="btn ghost" onClick={() => go("stages")}>+{b.asks.length - 8} more, by stage →</button></li> : null}
               </ul>
             ) : <span className="muted small">Nothing undecided.</span>}
@@ -243,6 +247,19 @@ function Overview({ s, b, flow, counts, file, go }: {
       </div>
       <div className="small muted">Drawn {s.drawn} · every state is read as written in the GDD table, asset records, cycle and playtest documents.</div>
     </>
+  );
+}
+
+function AskRow({ q, run }: { q: Ask; run: Run | null }) {
+  return (
+    <li>
+      <i className="dot st-bad" />
+      <div className="t">
+        <b>{q.title}</b>
+        <small>{q.text ? q.text + " · " : ""}{q.from}</small>
+        {q.decision ? <NotNeeded run={run} what={q.decision.num} act={{ action: "drop-decision", doc: q.decision.doc, num: q.decision.num }} /> : null}
+      </div>
+    </li>
   );
 }
 
@@ -303,7 +320,7 @@ function Lane({ label, items, file, zoom }: { label: string; items: Item[]; file
   );
 }
 
-function Stages({ b, sel, pick, file, zoom }: { b: Board; sel: number; pick: (i: number) => void; file: (p: string) => string; zoom: Zoom }) {
+function Stages({ b, sel, pick, file, zoom, run }: { b: Board; sel: number; pick: (i: number) => void; file: (p: string) => string; zoom: Zoom; run: Run | null }) {
   const st = b.stages.find((x) => x.i === sel) ?? b.stages[0];
   if (!st) return <div className="empty">No stages read yet.</div>;
   return (
@@ -329,7 +346,7 @@ function Stages({ b, sel, pick, file, zoom }: { b: Board; sel: number; pick: (i:
         <section className="card sec">
           <div className="sec-h"><h3>Undecided</h3><span className="lab" style={{ marginLeft: "auto" }}>{st.open.length}</span></div>
           {st.open.length ? (
-            <ul className="list">{st.open.map((q, n) => <li key={n}><i className="dot st-bad" /><div className="t"><b>{q.title}</b><small>{q.text ? q.text + " · " : ""}{q.from}</small></div></li>)}</ul>
+            <ul className="list">{st.open.map((q, n) => <AskRow key={n} q={q} run={run} />)}</ul>
           ) : <span className="small muted">None.</span>}
         </section>
         <section className="card sec">

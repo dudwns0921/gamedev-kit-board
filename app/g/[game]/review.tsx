@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Picture, Review } from "@/lib/board";
+import NotNeeded, { type Run } from "./not-needed";
 
 export type Zoom = (src: string, label: string) => void;
 
@@ -35,7 +36,9 @@ function choices(i: Review): { pick: string; text: string; mark?: string; tag?: 
   return [{ pick: "ok", text: "OK" }, { pick: "problem", text: "Problem", no: true }];
 }
 
-export default function ReviewTab({ game, share, items, file, zoom }: { game: string; share: string | null; items: Review[]; file: (p: string) => string; zoom: Zoom }) {
+export default function ReviewTab({ game, share, items, file, zoom, run }: {
+  game: string; share: string | null; items: Review[]; file: (p: string) => string; zoom: Zoom; run: Run | null;
+}) {
   const store = `board-review:${game}`;
   const [a, setA] = useState<A>({});
   const [said, setSaid] = useState("");
@@ -122,6 +125,8 @@ export default function ReviewTab({ game, share, items, file, zoom }: { game: st
                         </button>
                       ))}
                     </div>
+                    {i.kind === "decision" && i.doc ? <NotNeeded run={run} what={i.ref} act={{ action: "drop-decision", doc: i.doc, num: i.ref }} /> : null}
+                    {i.kind === "asset" && i.state === "image only" ? <NotNeeded run={run} what={i.ref} act={{ action: "drop-asset", tool: i.tool, name: i.ref }} /> : null}
                     {here ? <textarea className="note" rows={1} placeholder={i.kind === "decision" ? "Note (optional)" : i.kind === "check" ? "What did you see?" : "What is off?"}
                       value={v?.note ?? ""} onChange={(e) => set(i.key, { note: e.target.value })} /> : null}
                   </div>

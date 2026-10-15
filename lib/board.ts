@@ -16,14 +16,22 @@ export type Stage = {
   complete: number | null;
   image: string;
   lanes: Record<string, Item[]>;
-  open: { title: string; text: string; from: string }[];
+  open: Ask[];
   work: { cycle: string; name: string; stage: string; tasks: { num: string; title: string; mark: string; did: string }[] }[];
 };
+
+/** An open question. One from a cycle names its decision — the dashboard can withdraw it. */
+export type Ask = { title: string; text: string; from: string; decision?: { doc: string; num: string } };
+
+/** What the dashboard can do to a game on this machine (lib/act.ts runs it). */
+export type Act =
+  | { action: "drop-decision"; doc: string; num: string; why?: string }
+  | { action: "drop-asset"; tool: string; name: string };
 
 export type Picture = { label: string; src: string; crop?: number[]; size?: number[] };
 
 export type Review =
-  | { kind: "decision"; key: string; ref: string; title: string; cycle: string; who: string; recommend: string; proxy: string;
+  | { kind: "decision"; key: string; ref: string; title: string; cycle: string; doc?: string; who: string; recommend: string; proxy: string;
       options: { mark: string; text: string }[]; pictures: Picture[] }
   | { kind: "asset" | "style"; key: string; ref: string; title: string; tool: string; state: string; what: string; old: boolean; views: string[]; said: string[] }
   | { kind: "check"; key: string; ref: string; title: string; cycle: string };
@@ -33,7 +41,7 @@ export type Model = { name: string; img: string; tool: string; st: St; state: st
 export type Board = {
   lanes: { key: string; label: string }[];
   stages: Stage[];
-  asks: { title: string; text: string; from: string; stage: number }[];
+  asks: (Ask & { stage: number })[];
   cycles: { num: string; name: string; stage: string; start: string; goal: string;
     tasks: { done: number; open: number; blocked: number }; decisions: { open: number; all: number } }[];
   review: Review[];
@@ -50,6 +58,8 @@ export type Summary = {
   now: { cycle: string; name: string; stage: string } | null;
   counts: { problems: number; not_made: number; placeholders: number; undecided: number; review: number; done?: number; old_style?: number };
   stages: { name: string; complete: number | null }[];
+  /** Sent only to a dashboard on the same machine: where the game and the kit are, so actions can run the kit's scripts there. */
+  local?: { root: string; kit: string; python: string };
   /** Everything the pages show — sent by kit 0.43.0 and later. Without it the kit's own page is shown. */
   board?: Board;
 };
