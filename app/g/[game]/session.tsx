@@ -3,9 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { Inbox } from "@/lib/board";
 
-// Whether answers sent now reach the game's Claude session — read from the kit's watcher files, never asked of the session.
-// Always shown as one pill in the top bar; a toast only when it changes in a way worth saying (never for "connected ↔ at work",
-// which flips every turn, and "disconnected" only once it has lasted a while — the gap between turns is not a disconnection).
+// Whether answers sent now reach the game's Claude session — as the kit said it in .session, never judged here.
+// Always shown as one pill in the top bar; a toast only when it changes in a way worth saying (never for "connected ↔ at work", which flips every turn).
 
 export type SessionState = "on" | "work" | "off";
 
@@ -15,7 +14,6 @@ export function stateOf(box: Inbox): SessionState | null {
 }
 
 const LABEL: Record<SessionState, string> = { on: "Session connected", work: "Session at work", off: "No session" };
-const OFF_AFTER = 15_000;
 
 function since(at?: string): string {
   if (!at) return "";
@@ -65,7 +63,6 @@ export function SessionToasts({ box }: { box: Inbox }) {
   const [items, setItems] = useState<Toast[]>([]);
   const prev = useRef<{ st: SessionState | null; taken: number } | null>(null);
   const toldOff = useRef(false);
-  const offTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const n = useRef(0);
 
   const push = (t: Omit<Toast, "id">, ms: number) => {
@@ -84,15 +81,10 @@ export function SessionToasts({ box }: { box: Inbox }) {
       return;
     }
     if (st === "off" && was.st !== "off") {
-      if (offTimer.current) clearTimeout(offTimer.current);
-      offTimer.current = setTimeout(() => {
-        toldOff.current = true;
-        push({ tone: "off", title: "Session disconnected", line: "Your answers wait — send any message in the game's session to reconnect it." }, 7000);
-      }, OFF_AFTER);
+      toldOff.current = true;
+      push({ tone: "off", title: "Session disconnected", line: "Your answers wait — send any message in the game's session to reconnect it." }, 7000);
     }
     if (st !== "off" && was.st === "off") {
-      if (offTimer.current) clearTimeout(offTimer.current);
-      offTimer.current = null;
       if (toldOff.current) {
         toldOff.current = false;
         push({ tone: "on", title: "Session reconnected", line: taken > was.taken ? `It took ${taken} waiting answer${taken === 1 ? "" : "s"}.` : "Answers you send wake it again." }, 4500);
@@ -101,8 +93,6 @@ export function SessionToasts({ box }: { box: Inbox }) {
     }
     if (taken > was.taken) push({ tone: "took", title: "The session took your answers", line: "Each card leaves as it is done." }, 4500);
   }, [box]);
-
-  useEffect(() => () => { if (offTimer.current) clearTimeout(offTimer.current); }, []);
 
   return (
     <div className="toasts" aria-live="polite">

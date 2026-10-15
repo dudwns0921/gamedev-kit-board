@@ -25,70 +25,42 @@ export async function send(s: Summary, rows: Answer[]): Promise<{ ok: boolean; s
   return { ok: true, said: `Sent ${clean.length} to the session.` };
 }
 
-const UNTAKEN = 8_000; // a batch no watcher took in this long: no session of the game is open
-const STRANDED = 60_000; // a batch taken this long ago, never read, with no watcher alive: the session it was meant to wake did not wake (or has gone)
-const BEAT = 10_000; // the kit's monitor touches .watching every couple of seconds
-const WORK = 10 * 60_000; // the kit marks .active on every prompt and tool — a session this recently at work takes answers when its turn ends
-
 function alive(pid: number): boolean {
   try { process.kill(pid, 0); return true; } catch (e) { return (e as NodeJS.ErrnoException).code === "EPERM"; }
 }
 
-/** A watcher of the kit still holds this game: a monitor beating, or the after-turn hook waiting. */
-async function watched(board: string): Promise<boolean> {
-  const beat = await fs.stat(path.join(board, ".watching")).catch(() => null);
-  if (beat && Date.now() - beat.mtimeMs < BEAT) return true;
-  const pid = Number((await fs.readFile(path.join(board, ".rewake"), "utf8").catch(() => "")).trim());
-  return Number.isInteger(pid) && pid > 0 && alive(pid);
-}
-
-/** Why and when the kit's after-turn hook last stopped waiting — the line it leaves in .rewake.log ("<time> · pid <n> · <why>"). */
-async function lastEnd(board: string): Promise<{ why: string; at: string }> {
-  const parts = (await fs.readFile(path.join(board, ".rewake.log"), "utf8").catch(() => "")).trim().split(" · ");
-  return { why: parts.slice(2).join(" · "), at: parts.length > 2 ? parts[0] : "" };
+/** Where the game's session stands, as the kit wrote it in <board>/.session when it changed — shown as written, nothing judged here.
+ *  The one fact checked: whether the process it names is still alive, since a process that is killed cannot write that it went. */
+async function said(board: string): Promise<{ state: "on" | "work" | "off"; why: string; at: string } | null> {
+  const got = JSON.parse(await fs.readFile(path.join(board, ".session"), "utf8").catch(() => "null")) as
+    { state?: string; why?: string; at?: string; pid?: number | null } | null;
+  if (!got || !["on", "work", "off"].includes(String(got.state))) return null;
+  const state = got.state as "on" | "work" | "off";
+  if (state !== "off" && Number.isInteger(got.pid) && !alive(got.pid as number))
+    return { state: "off", why: state === "on" ? "its watcher stopped" : "the session stopped", at: got.at ?? "" };
+  return { state, why: got.why ?? "", at: got.at ?? "" };
 }
 
 /** Which keys are waiting to be taken, taken by the session, or relayed to it and being worked on (until the board stops asking them).
- *  untaken: a batch has waited long enough that no open session will take it. listening: a watcher of the kit holds the game now —
- *  answers sent wake its session; when none does, ended says why the last one stopped. */
-export async function status(s: Summary): Promise<{ sent: string[]; taken: string[]; relayed: string[]; untaken: boolean; listening: boolean | null; working: boolean; ended: string; endedAt: string; batches: string[] }> {
+ *  listening · working · ended: where the session stands, as the kit said it (null: a board from another machine, or a kit that does not say).
+ *  untaken: answers are in the inbox and no session will take them until the user sends a message in one. */
+export async function status(s: Summary): Promise<{ sent: string[]; taken: string[]; relayed: string[]; untaken: boolean; listening: boolean | null; working: boolean; ended: string; endedAt: string }> {
   const dir = box(s);
-  const out = { sent: [] as string[], taken: [] as string[], relayed: [] as string[], untaken: false, listening: null as boolean | null, working: false, ended: "", endedAt: "", batches: [] as string[] };
+  const out = { sent: [] as string[], taken: [] as string[], relayed: [] as string[], untaken: false, listening: null as boolean | null, working: false, ended: "", endedAt: "" };
   if (!dir) return out;
   const names = await fs.readdir(dir).catch(() => [] as string[]);
-  out.listening = await watched(s.local!.board!);
-  if (!out.listening) {
-    // mid-turn no watcher waits, but the turn's end brings one: the kit marks .active on every prompt and tool — and a batch it took
-    // or relayed lately says the same, from a session started on a kit that does not mark it yet
-    const recent = async (n: string) => {
-      const st = await fs.stat(n.startsWith(".") ? path.join(s.local!.board!, n) : path.join(dir, n)).catch(() => null);
-      return Boolean(st && Date.now() - st.mtimeMs < WORK);
-    };
-    const marks = await fs.stat(path.join(s.local!.board!, ".active")).then(() => true, () => false);
-    out.working = marks ? await recent(".active")  // a kit that marks it is judged by its mark alone
-      : (await Promise.all(names.filter((n) => /\.(taken|relayed)$/.test(n)).map(recent))).some(Boolean);
-    if (!out.working) ({ why: out.ended, at: out.endedAt } = await lastEnd(s.local!.board!));
+  const st = await said(s.local!.board!);
+  if (st) {
+    out.listening = st.state === "on";
+    out.working = st.state === "work";
+    if (st.state === "off") ({ why: out.ended, at: out.endedAt } = st);
   }
-  const held = names.some((n) => n.endsWith(".taken")) ? await watched(s.local!.board!) : true;
   for (const n of names) {
-    if (n.endsWith(".taken") && !held) {
-      const at = (await fs.stat(path.join(dir, n)).catch(() => null))?.mtimeMs ?? Date.now();
-      if (Date.now() - at > STRANDED) {
-        out.untaken = true;
-        out.batches.push(n);
-      }
-    }
-    if (n.endsWith(".json")) {
-      const at = Number(n.split("-")[0]);
-      if (Number.isFinite(at) && Date.now() - at > UNTAKEN) {
-        out.untaken = true;
-        out.batches.push(n);
-      }
-    }
     const where = n.endsWith(".json") ? out.sent : n.endsWith(".taken") ? out.taken : n.endsWith(".relayed") ? out.relayed : null;
     if (!where) continue;
     const rows = JSON.parse(await fs.readFile(path.join(dir, n), "utf8").catch(() => "[]")) as Answer[];
     where.push(...rows.map((r) => r.key));
   }
+  out.untaken = st?.state === "off" && out.sent.length + out.taken.length > 0;
   return out;
 }

@@ -11,6 +11,5 @@ export async function GET(req: Request, { params }: { params: Promise<{ game: st
   if (!GAME.test(game)) return new Response("not found", { status: 404 });
   const s = await summary(game);
   if (!s) return new Response("not found", { status: 404 });
-  const { batches: _, ...box } = await status(s);
-  return Response.json(box, { headers: { "cache-control": "no-store" } });
+  return Response.json(await status(s), { headers: { "cache-control": "no-store" } });
 }

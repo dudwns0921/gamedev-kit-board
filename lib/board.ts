@@ -27,8 +27,8 @@ export type Ask = { title: string; text: string; from: string; decision?: { doc:
 export type Answer = { key: string; pick: string; note: string };
 
 /** Where the answers sent to a game stand, by review key: waiting to be taken, taken by the session, relayed to it and being worked on.
- *  untaken: a batch has waited long enough that no open session will take it. */
-/** listening: a watcher of the kit holds the game now (null: a board from another machine). ended: why the last one stopped. */
+ *  untaken: answers wait and no session will take them until the user sends a message in one.
+ *  listening · working · ended: where the session stands, as the kit wrote it in .session (null: a board from another machine). */
 export type Inbox = { sent: string[]; taken: string[]; relayed: string[]; untaken: boolean; listening?: boolean | null; working?: boolean; ended?: string; endedAt?: string };
 
 export type Act = { action: "send"; rows: Answer[] };
