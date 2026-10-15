@@ -119,7 +119,7 @@ export default function ReviewTab({ game, items, file, zoom, run }: {
                 const where = working.includes(i.key) ? "taken" : box.sent.includes(i.key) ? "sent" : "";
                 const opts = choices(i);
                 return (
-                  <div key={i.key} className={`card q${v?.pick ? " done" : ""}${where ? " flight" : ""}`}>
+                  <div key={i.key} className={`card q${v?.pick ? " done" : ""}${where ? ` flight ${where}` : ""}`}>
                     {where ? <span className={`state ${where}`}>{where === "sent" ? "Sent — waiting for the session" : "The session is on it"}</span> : null}
                     {i.kind === "decision" ? <span className="lab">{[i.latest === false ? `cycle ${i.cycle}` : "", i.who, i.proxy ? "decided for you" : ""].filter(Boolean).join(" · ")}</span> : null}
                     {i.kind === "asset" || i.kind === "style" ? <span className="lab">{i.tool === "asset" ? "3D model" : "sprite"} · {i.state}</span> : null}
