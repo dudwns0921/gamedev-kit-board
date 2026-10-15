@@ -24,16 +24,20 @@ export type Stage = {
 export type Ask = { title: string; text: string; from: string; decision?: { doc: string; num: string } };
 
 /** What the dashboard can do to a game on this machine (lib/act.ts runs it). */
+export type Answer = { key: string; pick: string; note: string };
+
 export type Act =
+  | { action: "send"; rows: Answer[] }
   | { action: "drop-decision"; doc: string; num: string; why?: string }
   | { action: "drop-asset"; tool: string; name: string };
 
 export type Picture = { label: string; src: string; crop?: number[]; size?: number[] };
 
 export type Review =
-  | { kind: "decision"; key: string; ref: string; title: string; cycle: string; doc?: string; who: string; recommend: string; proxy: string;
+  | { kind: "decision"; key: string; ref: string; title: string; cycle: string; doc?: string; latest?: boolean; who: string; recommend: string; proxy: string;
       options: { mark: string; text: string }[]; pictures: Picture[] }
   | { kind: "asset" | "style"; key: string; ref: string; title: string; tool: string; state: string; what: string; old: boolean; views: string[]; said: string[] }
+  | { kind: "question"; key: string; ref: string; title: string; text: string }
   | { kind: "check"; key: string; ref: string; title: string; cycle: string };
 
 export type Model = { name: string; img: string; tool: string; st: St; state: string; old: boolean; sample: boolean; reference: boolean; what: string; rejected: number };
@@ -59,7 +63,7 @@ export type Summary = {
   counts: { problems: number; not_made: number; placeholders: number; undecided: number; review: number; done?: number; old_style?: number };
   stages: { name: string; complete: number | null }[];
   /** Sent only to a dashboard on the same machine: where the game and the kit are, so actions can run the kit's scripts there. */
-  local?: { root: string; kit: string; python: string };
+  local?: { root: string; kit: string; python: string; board?: string };
   /** Everything the pages show — sent by kit 0.43.0 and later. Without it the kit's own page is shown. */
   board?: Board;
 };

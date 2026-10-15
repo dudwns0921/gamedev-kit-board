@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import path from "node:path";
 import { promisify } from "node:util";
 import type { Act, Summary } from "./board";
+import { send } from "./inbox";
 
 export type { Act };
 
@@ -29,6 +30,7 @@ function command(a: Act, kit: string, root: string): string[] | string {
 }
 
 export async function act(s: Summary, a: Act): Promise<{ ok: boolean; said: string }> {
+  if (a.action === "send") return send(s, a.rows ?? []);
   const local = s.local;
   if (!local) return { ok: false, said: "This game's board did not come from this machine — act on it in the game's session." };
   const cmd = command(a, local.kit, local.root);

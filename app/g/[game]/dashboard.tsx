@@ -7,7 +7,7 @@ import NotNeeded, { type Run } from "./not-needed";
 import ReviewTab, { type Zoom } from "./review";
 
 // One game, drawn from the data the kit sends. It asks for a newer board every 20 s and redraws in place — the open tab and stage stay.
-const EVERY = 20_000;
+const EVERY = 5_000;
 const TABS = ["overview", "review", "stages", "assets"] as const;
 type Tab = (typeof TABS)[number];
 const WORD: Record<St, string> = { done: "Done", temp: "Placeholder", none: "Not made", bad: "Problem" };
@@ -215,7 +215,8 @@ function Overview({ s, b, flow, counts, file, go, run }: {
               </div>
             </>
           ) : null}
-          <div className="sec-h"><h2>Undecided</h2><span className="lab">{b.asks.length}</span></div>
+          <div className="sec-h"><h2>Undecided</h2><span className="lab">{b.asks.length}</span>
+            <a className="more" href="?tab=review" onClick={(e) => { e.preventDefault(); go("review"); }}>Answer in Review →</a></div>
           <div className="card">
             {b.asks.length ? (
               <ul className="list">

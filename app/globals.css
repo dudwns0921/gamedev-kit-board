@@ -264,3 +264,9 @@ details > summary { cursor: pointer; color: var(--tx3); font-size: 12.5px; paddi
 .nn { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px dashed color-mix(in srgb, var(--bad) 50%, var(--border2)); border-radius: 10px; background: var(--bad-soft); }
 .nn .row-btns { display: flex; gap: 8px; }
 .btn.danger { background: var(--bad); border-color: var(--bad); color: #fff; }
+
+/* an answer on its way to the session */
+.q.flight { border-style: dashed; }
+.q .state { align-self: flex-start; font-size: 11.5px; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
+.q .state.sent { background: var(--warn-soft); color: color-mix(in srgb, var(--temp) 70%, var(--tx)); }
+.q .state.taken { background: var(--accent-soft); color: var(--accent); }

@@ -35,8 +35,11 @@ Done: sign-in · the dashboard of games (what waits across games) · one game dr
 four themes (system · light · dark · kit) · the kit's own page at `/g/<game>/kit` · started by the kit's `serve`.
 
 Done since: **Not needed** on a decision (or an asset attempt waiting for approval) withdraws it in the game itself and redraws the board.
+**Answers straight to the session**: the Review tab holds everything that waits (every cycle's open decisions, the GDD's open questions, images, checks);
+"Send to the session" writes one batch into the game's `<board>/inbox/` (`lib/inbox.ts`); the kit's watcher wakes the open session for it (or tells the next one),
+and each card shows sent → taken until the board no longer asks it. The page checks every few seconds.
 
 Next, in order:
-1. **Answers straight to the game.** A tap on the Review tab is written into the game's folder (the app runs on the same machine), and the session picks it up on its next turn — no copying.
-2. **Wake the session.** A Claude Code channel (an MCP server that puts a message into a running session) tells the game's session that answers arrived, so it acts at once.
+1. Confirm in use that the desktop app wakes for a batch (the kit's monitor, or its after-turn hook); if neither, say so in the Review tab.
+2. **No open session needed**: when nothing is watching a game, run Claude Code here (`claude -p` or the Agent SDK) on its inbox, with a fixed set of allowed tools — Jenkins-like jobs with their log on the page.
 3. Views a chat cannot give: change over time (decisions → build → play per cycle), all games side by side, a notification when a decision is waiting.
