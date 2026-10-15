@@ -14,7 +14,7 @@ export type Zoom = (src: string, label: string) => void;
 // Picks are kept in this browser until sent; a question asked anew has a new key, so an old pick never answers it.
 
 type A = Record<string, { pick: string; note: string }>;
-type Box = { sent: string[]; taken: string[] };
+type Box = { sent: string[]; taken: string[]; relayed?: string[] };
 
 const GROUPS: { id: string; title: string; hit: (i: Review) => boolean; hint?: string }[] = [
   { id: "now", title: "Decisions — this cycle", hit: (i) => i.kind === "decision" && i.latest !== false },
@@ -48,7 +48,7 @@ export default function ReviewTab({ game, share, items, file, zoom, run }: {
 }) {
   const store = `board-review:${game}`;
   const [a, setA] = useState<A>({});
-  const [box, setBox] = useState<Box>({ sent: [], taken: [] });
+  const [box, setBox] = useState<Box>({ sent: [], taken: [], relayed: [] });
   const [said, setSaid] = useState("");
   const [busy, setBusy] = useState(false);
   const mode: "direct" | "link" | "copy" = run ? "direct" : share ? "link" : "copy";
@@ -82,7 +82,8 @@ export default function ReviewTab({ game, share, items, file, zoom, run }: {
     });
   }
 
-  const inFlight = new Set([...box.sent, ...box.taken]);
+  const working = [...box.taken, ...(box.relayed ?? [])];
+  const inFlight = new Set([...box.sent, ...working]);
   const ready = items.filter((i) => !inFlight.has(i.key) && (a[i.key]?.pick || a[i.key]?.note));
   const text = ready.map((i) => { const v = a[i.key]; return `${label(i)} → ${v.pick}${v.note ? " — " + v.note : ""}`; }).join("\n");
 
@@ -142,11 +143,11 @@ export default function ReviewTab({ game, share, items, file, zoom, run }: {
             <div className="grid">
               {its.map((i) => {
                 const v = a[i.key];
-                const where = box.taken.includes(i.key) ? "taken" : box.sent.includes(i.key) ? "sent" : "";
+                const where = working.includes(i.key) ? "taken" : box.sent.includes(i.key) ? "sent" : "";
                 const opts = choices(i);
                 return (
                   <div key={i.key} className={`card q${v?.pick ? " done" : ""}${where ? " flight" : ""}`}>
-                    {where ? <span className={`state ${where}`}>{where === "sent" ? "Sent — waiting for the session" : "The session has it — working"}</span> : null}
+                    {where ? <span className={`state ${where}`}>{where === "sent" ? "Sent — waiting for the session" : "The session is on it"}</span> : null}
                     {i.kind === "decision" ? <span className="lab">{[i.latest === false ? `cycle ${i.cycle}` : "", i.who, i.proxy ? "decided for you" : ""].filter(Boolean).join(" · ")}</span> : null}
                     {i.kind === "asset" || i.kind === "style" ? <span className="lab">{i.tool === "asset" ? "3D model" : "sprite"} · {i.state}</span> : null}
                     <h3>{i.kind === "decision" ? <code>{i.ref}</code> : null}{i.title}</h3>
@@ -183,7 +184,7 @@ export default function ReviewTab({ game, share, items, file, zoom, run }: {
       {pickable ? (
         <div className="dock">
           <span className="lab">Ready to send</span><b>{ready.length}</b>
-          {inFlight.size ? <span className="small muted">· {box.sent.length} waiting · {box.taken.length} with the session</span> : null}
+          {inFlight.size ? <span className="small muted">· {box.sent.length} waiting · {working.length} with the session</span> : null}
           <div className="act">
             <button className="btn primary" onClick={deliver} disabled={!ready.length || busy}>
               {mode === "direct" ? (busy ? "Sending…" : `Send to the session${ready.length ? ` (${ready.length})` : ""}`) : "Copy answers"}
