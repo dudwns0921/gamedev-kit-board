@@ -33,5 +33,8 @@ Done (first version): sign-in · the list of games (completion, current cycle an
 Next, in order:
 1. Deploy (the user creates the Vercel project, the private Blob store and the environment variables — README "Set up").
 2. Connect the user's games and use it for a few cycles; what gets in the way goes in the user's private records, not here.
-3. Views a chat cannot give, drawn from data rather than the kit's page: change over time (decisions → build → play per cycle), all games side by side, "a decision is waiting" as a push notification (PWA).
-4. Later, if it earns it: decisions answered here too — needs a way into the game's session (a Claude Code channel MCP server) and would be the reason for a long-running server beside this app.
+3. **Data only, drawn here** (the user's call): the kit sends the board as data and this app draws it, so the kit stops carrying the page and the screens change without a kit release.
+   First widen the kit's `board.json` to everything the pages show (stages · items · assets · review), then draw it here in React; the kit's local HTML stays until this is as good
+   (the kit must work without this service), then gets lighter. Until then the kit's page is shown as it is.
+4. Views a chat cannot give, drawn from data: change over time (decisions → build → play per cycle), all games side by side, "a decision is waiting" as a push notification (PWA).
+5. Later, if it earns it: decisions answered here too — needs a way into the game's session (a Claude Code channel MCP server) and would be the reason for a long-running server beside this app.
