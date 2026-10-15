@@ -7,7 +7,8 @@ import { get, list, put } from "@vercel/blob";
 
 export type Stored = { body: Buffer; contentType: string };
 
-const useBlob = () => Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+// A connected store gives either a read-write token or, the newer way, its id with Vercel's own runtime credentials (OIDC) — the SDK takes both.
+const useBlob = () => Boolean(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);
 const LOCAL = path.join(process.cwd(), ".data");
 
 async function streamToBuffer(stream: ReadableStream<Uint8Array>): Promise<Buffer> {
@@ -37,7 +38,7 @@ export async function read(key: string): Promise<Stored | null> {
 }
 
 /** Which store this deployment writes to — said in an error, so a missing Blob connection is plain to see. */
-export const where = () => (useBlob() ? "Vercel Blob (private)" : "the local .data folder — no BLOB_READ_WRITE_TOKEN on this deployment");
+export const where = () => (useBlob() ? "Vercel Blob (private)" : "the local .data folder — no Blob store connected to this deployment (BLOB_STORE_ID or BLOB_READ_WRITE_TOKEN)");
 
 export async function write(key: string, body: Buffer, contentType: string): Promise<void> {
   if (useBlob()) {

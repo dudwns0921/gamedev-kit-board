@@ -7,7 +7,7 @@ The kit draws the board in each game repository and, at the end of every Claude 
 ## Set up (once)
 
 1. **Vercel** — import this repository as a project.
-2. **Blob store** — in the project's Storage tab, create a Blob store with **private** access and connect it. That sets `BLOB_READ_WRITE_TOKEN`.
+2. **Blob store** — in the project's Storage tab, create a Blob store with **private** access and connect it. That sets `BLOB_STORE_ID` (the app then reaches it with Vercel's own credentials) — or, on older connections, `BLOB_READ_WRITE_TOKEN`.
 3. **Environment variables** (Project → Settings → Environment Variables):
    - `APP_PASSWORD` — what you type to sign in.
    - `SESSION_SECRET` — a long random string (`openssl rand -hex 32`).
@@ -39,7 +39,7 @@ npm install
 APP_PASSWORD=pw SESSION_SECRET=dev INGEST_TOKEN=dev npm run dev
 ```
 
-Without `BLOB_READ_WRITE_TOKEN` the data goes to `.data/`. Point a game at it with `GAMEDEV_BOARD_URL=http://localhost:3000` and `GAMEDEV_BOARD_TOKEN=dev` (in the environment or the file above) to try it.
+Without a connected store the data goes to `.data/`. Point a game at it with `GAMEDEV_BOARD_URL=http://localhost:3000` and `GAMEDEV_BOARD_TOKEN=dev` (in the environment or the file above) to try it.
 
 ## How it fits together
 
