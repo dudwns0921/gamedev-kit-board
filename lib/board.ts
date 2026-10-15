@@ -55,7 +55,8 @@ export type Summary = {
   drawn: string;
   received: string;
   complete: number;
-  now: { cycle: string; name: string; stage: string } | null;
+  /** pause: the cycle waits on the user (decisions asked, or time to play) — where the game's session can be cleared and go on. */
+  now: { cycle: string; name: string; stage: string; pause?: boolean } | null;
   counts: { problems: number; not_made: number; placeholders: number; undecided: number; review: number; done?: number; old_style?: number };
   stages: { name: string; complete: number | null }[];
   /** Sent only to a dashboard on the same machine: where the game's board folder is, so answers can be put in its inbox. */

@@ -93,6 +93,11 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
           ))}
         </nav>
 
+        {s.now?.pause ? (
+          <div className="pause small">At a break — a good moment to start the game&apos;s session over light, in the same window:
+            <code>/clear</code> then <code>/gamedev-kit:cycle next</code>. It stays connected to this dashboard.</div>
+        ) : null}
+
         {tab === "overview" ? <Overview s={s} b={b} flow={flow} counts={counts} file={file} go={go} run={run} /> : null}
         {tab === "review" ? <ReviewTab game={s.game} items={b.review} file={file} zoom={z} run={run} /> : null}
         {tab === "stages" ? <Stages b={b} sel={stage ?? flow[0]?.i ?? 0} pick={setStage} file={file} zoom={z} run={run} /> : null}
