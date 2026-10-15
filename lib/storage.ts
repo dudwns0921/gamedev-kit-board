@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { get, list, put } from "@vercel/blob";
+import { del, get, list, put } from "@vercel/blob";
 
 // Where everything lives: games/<game>/summary.json · games/<game>/page.html · games/<game>/f/<content-hash>.<ext>
 // On Vercel a private Blob store; on a machine without one, the .data/ folder.
@@ -73,4 +73,16 @@ export async function keys(prefix: string): Promise<string[]> {
   };
   await walk(LOCAL);
   return out.filter((k) => k.startsWith(prefix));
+}
+
+/** Remove everything under a prefix — a game taken off the board. */
+export async function removeAll(prefix: string): Promise<number> {
+  const all = await keys(prefix);
+  if (!all.length) return 0;
+  if (useBlob()) {
+    for (let i = 0; i < all.length; i += 500) await del(all.slice(i, i + 500));
+  } else {
+    await Promise.all(all.map((k) => fs.rm(path.join(LOCAL, k), { force: true }).then(() => fs.rm(path.join(LOCAL, k + ".type"), { force: true }))));
+  }
+  return all.length;
 }

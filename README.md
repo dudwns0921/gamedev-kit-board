@@ -49,6 +49,7 @@ Without a connected store the data goes to `.data/`. Point a game at it with `GA
 | `PUT /api/ingest/<game>/file/<name>` | one picture or sound |
 | `PUT /api/ingest/<game>/page` | the board — every page of it in one document, as the kit drew it |
 | `PUT /api/ingest/<game>/summary` | the board as data (`board.json`) — what the list of games and the refresh read |
+| `DELETE /api/ingest/<game>` | takes a game off (the next push from it puts it back) |
 | `/` | your games |
 | `/g/<game>` | one game's board; it checks for a newer one every 20 s |
 
