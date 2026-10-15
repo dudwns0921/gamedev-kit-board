@@ -28,8 +28,10 @@ export function passwordOk(given: string): boolean {
   return same(given, need("APP_PASSWORD"));
 }
 
-export async function startSession(): Promise<void> {
-  (await cookies()).set(COOKIE, ticket(), { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: MAX_AGE });
+/** Secure only when the page came over https — on this machine (http://localhost, an SSH forward) a secure cookie would not be kept by every browser. */
+export async function startSession(req: Request): Promise<void> {
+  const https = new URL(req.url).protocol === "https:" || req.headers.get("x-forwarded-proto") === "https";
+  (await cookies()).set(COOKIE, ticket(), { httpOnly: true, secure: https, sameSite: "lax", path: "/", maxAge: MAX_AGE });
 }
 
 export async function endSession(): Promise<void> {

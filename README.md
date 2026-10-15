@@ -1,45 +1,45 @@
 # gamedev-kit-board
 
-A private web app that shows where each of your games stands — the status board that [claude-gamedev-kit](https://github.com/dudwns0921/claude-gamedev-kit) draws, kept current, readable from a phone or any computer you sign in on.
+The dashboard of [claude-gamedev-kit](https://github.com/dudwns0921/claude-gamedev-kit): every game on your machine on one page — what waits on you across games, then each game's stages, review and assets — redrawn as the games change.
 
-The kit draws the board in each game repository and, at the end of every Claude turn, sends it here (`board.py push`). This app stores it and shows it. It does not chat and does not run anything; answering decisions stays on the kit's claude.ai link (the board's "Answer on Claude" button).
+It runs on your own machine, next to the games. The kit installs and starts it; you do not clone this repository by hand.
 
-## Set up (once)
+## Start it
 
-1. **Vercel** — import this repository as a project.
-2. **Blob store** — in the project's Storage tab, create a Blob store with **private** access and connect it. That sets `BLOB_STORE_ID` (the app then reaches it with Vercel's own credentials) — or, on older connections, `BLOB_READ_WRITE_TOKEN`.
-3. **Environment variables** (Project → Settings → Environment Variables):
-   - `APP_PASSWORD` — what you type to sign in.
-   - `SESSION_SECRET` — a long random string (`openssl rand -hex 32`).
-   - `INGEST_TOKEN` — another long random string. The kit sends boards with it.
-4. Redeploy, open the app, sign in. The list is empty until a game sends its board.
+In any game that uses the kit, ask Claude to start the dashboard (or run it yourself):
 
-## Connect a game
-
-On your machine, once — a file outside every repository, as the kit keeps its other keys:
-
-```
-# ~/.config/gamedev-kit/board.env
-GAMEDEV_BOARD_URL=https://<your app>.vercel.app
-GAMEDEV_BOARD_TOKEN=<the same value as INGEST_TOKEN>
+```bash
+python3 <kit>/skills/board/scripts/board.py serve
 ```
 
-In each game repository, in `kit.config.json`:
+That clones this repository to `~/.config/gamedev-kit/board-app`, builds it (once per version), starts it on `http://localhost:3100`, and sends the game's board. Needs git and Node.js.
+The sign-in password is made on the first run — it is `GAMEDEV_BOARD_PASSWORD` in `~/.config/gamedev-kit/board.env`. Run `serve` once in each game that should appear; after that every Claude turn in that game sends its board.
 
-```json
-"board": { "service": { "game": "<lowercase-id>" } }
-```
+`serve --status` · `serve --stop`. After a restart of the machine, `serve` starts it again.
 
-Then, in that game, `python3 <kit>/skills/board/scripts/board.py push` once (or just let a turn end). The game appears in the list.
+## From your phone or another computer
 
-## Run locally
+The server listens on your machine only. Reach it through one of:
+
+- **Tailscale** (phone and laptop): install it on both devices, then on the machine running the dashboard `tailscale serve --bg 3100`. Open the https address it prints — only your own devices reach it.
+- **SSH**: `ssh -L 3100:localhost:3100 <your machine>`, then open `http://localhost:3100` on the device you are on.
+
+Do not open the port to the internet.
+
+## What it does not do
+
+It does not chat and does not run anything. Answering what waits on you: tap the answers on the Review tab and copy them into the game's Claude chat — or, for a game whose board is on a claude.ai link, answer there and press "Send to Claude".
+
+## Run it by hand (development)
 
 ```bash
 npm install
 APP_PASSWORD=pw SESSION_SECRET=dev INGEST_TOKEN=dev npm run dev
 ```
 
-Without a connected store the data goes to `.data/`. Point a game at it with `GAMEDEV_BOARD_URL=http://localhost:3000` and `GAMEDEV_BOARD_TOKEN=dev` (in the environment or the file above) to try it.
+Data goes to `.data/`. Point a game at it with `GAMEDEV_BOARD_URL=http://localhost:3000` and `GAMEDEV_BOARD_TOKEN=dev` (in the environment or `~/.config/gamedev-kit/board.env`), then `board.py push`.
+
+It can also run on a host of your own (Vercel with a private Blob store: `BLOB_STORE_ID` or `BLOB_READ_WRITE_TOKEN`, and the three variables above) — then set `GAMEDEV_BOARD_URL` to that address by hand.
 
 ## How it fits together
 
@@ -47,10 +47,11 @@ Without a connected store the data goes to `.data/`. Point a game at it with `GA
 |---|---|
 | `POST /api/ingest/<game>/check` | the kit lists the pictures its page shows (named by content); the answer is the ones missing |
 | `PUT /api/ingest/<game>/file/<name>` | one picture or sound |
-| `PUT /api/ingest/<game>/page` | the board — every page of it in one document, as the kit drew it |
-| `PUT /api/ingest/<game>/summary` | the board as data (`board.json`) — what the list of games and the refresh read |
+| `PUT /api/ingest/<game>/page` | the kit's own page, every page of it in one document |
+| `PUT /api/ingest/<game>/summary` | the board as data (`board.json`) — everything the dashboard draws |
 | `DELETE /api/ingest/<game>` | takes a game off (the next push from it puts it back) |
 | `/` | your games |
-| `/g/<game>` | one game's board; it checks for a newer one every 20 s |
+| `/g/<game>` | one game: overview · review · stages · assets; checks for a newer board every 20 s |
+| `/g/<game>/kit` | the kit's own page for that game |
 
 Storage keys: `games/<game>/summary.json` · `page.html` · `f/<hash>.<ext>`.

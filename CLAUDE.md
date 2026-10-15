@@ -1,20 +1,22 @@
 # CLAUDE.md — gamedev-kit-board
 
-A private, single-user web app (Next.js on Vercel, Vercel Blob private store) that shows the status boards the claude-gamedev-kit plugin sends from game repositories.
-The kit lives in its own repository; this app only receives and shows. The two meet in one place: what the kit's `board.py push` sends (see README "How it fits together").
+A single-user web app (Next.js) that shows the boards the claude-gamedev-kit plugin sends from game repositories — every game on one page.
+It runs on the user's own machine: the kit's `board.py serve` clones this repository outside every game, builds it and starts it on localhost.
+The kit lives in its own repository; the two meet in one place: what the kit's `board.py push` sends (see README "How it fits together").
 
 ## What it is for
 
-The user wants to know, from a phone or any other computer, where each game stands and what waits on them — at a glance, which a chat cannot give.
-So this is **visualization only**: no chat, no prompt box, no buttons that run agents — Claude (desktop · app) is where the talking and the doing happen.
-Answering decisions stays on the kit's claude.ai link for now ("Send to Claude" there wakes the game's session).
+The user wants to see where each game stands and what waits on them at a glance, which a chat cannot give — and, step by step, to handle that work from the page.
+Seen from a phone or another computer through the user's own tunnel (Tailscale, an SSH forward); the server itself listens on localhost.
+No chat and no prompt box here — Claude (desktop · app · terminal) is where the talking happens.
 
 ## Rules
 
-- **One user.** A password signs in; a signed cookie keeps it; the kit sends with a separate token. No accounts, no sharing.
-- **Game data stays private.** The Blob store is private; pictures are served through the app after the sign-in check, never by a public URL.
-- **Logic in `lib/`, routes stay thin** — so a later split into a long-running server (see "Later") moves code instead of rewriting it.
-- **The data shape is the kit's.** `lib/games.ts` mirrors the kit's `board.json`. A field the kit adds passes through; change the kit first, then this.
+- **One user.** A password signs in; a signed cookie keeps it; the kit sends with a separate token. No accounts, no sharing. `serve` makes all three and keeps them in the user's `board.env`.
+- **Game data stays on the machine.** Storage is `.data/` beside the app. (A private Vercel Blob store is still read when its variables are set — for a user who hosts it elsewhere.)
+- **Logic in `lib/`, routes stay thin.** Client components import only `lib/board.ts` (types and small helpers) — never the storage code.
+- **The data shape is the kit's.** `lib/board.ts` mirrors the kit's `board.json`. A field the kit adds passes through; change the kit first, then this.
+- **The kit drives it.** What `serve` runs (`npm install`, `npm run build`, `npm run start -- -p <port> -H 127.0.0.1`, the environment variables) is a contract with the kit — change both together.
 - Code, comments, UI text and commit messages in English.
 
 ## Verification
@@ -24,17 +26,14 @@ npm run typecheck
 npm run build
 ```
 
-End to end: run it locally (README "Run locally"), point a sample game at it, `board.py push`, sign in, open the game.
+End to end: run it (README "Run it by hand"), point a sample game at it, `board.py push`, sign in, open the game in each theme and on a phone width.
 
 ## Where it stands, and what is next
 
-Done (first version): sign-in · the list of games (completion, current cycle and stage, what waits, when updated) · one game's board as the kit drew it, refreshed when a newer one arrives · the ingest API · local `.data/` storage when no Blob store is connected. Checked locally end to end; not yet deployed.
+Done: sign-in · the dashboard of games (what waits across games) · one game drawn from data (overview · review · stages · assets), redrawn in place as a newer board arrives ·
+four themes (system · light · dark · kit) · the kit's own page at `/g/<game>/kit` · started by the kit's `serve`.
 
 Next, in order:
-1. Deploy (the user creates the Vercel project, the private Blob store and the environment variables — README "Set up").
-2. Connect the user's games and use it for a few cycles; what gets in the way goes in the user's private records, not here.
-3. **Data only, drawn here** (the user's call): the kit sends the board as data and this app draws it, so the kit stops carrying the page and the screens change without a kit release.
-   First widen the kit's `board.json` to everything the pages show (stages · items · assets · review), then draw it here in React; the kit's local HTML stays until this is as good
-   (the kit must work without this service), then gets lighter. Until then the kit's page is shown as it is.
-4. Views a chat cannot give, drawn from data: change over time (decisions → build → play per cycle), all games side by side, "a decision is waiting" as a push notification (PWA).
-5. Later, if it earns it: decisions answered here too — needs a way into the game's session (a Claude Code channel MCP server) and would be the reason for a long-running server beside this app.
+1. **Answers straight to the game.** A tap on the Review tab is written into the game's folder (the app runs on the same machine), and the session picks it up on its next turn — no copying.
+2. **Wake the session.** A Claude Code channel (an MCP server that puts a message into a running session) tells the game's session that answers arrived, so it acts at once.
+3. Views a chat cannot give: change over time (decisions → build → play per cycle), all games side by side, a notification when a decision is waiting.
