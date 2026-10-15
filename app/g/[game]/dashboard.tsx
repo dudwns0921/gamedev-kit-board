@@ -27,6 +27,7 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
   const [zoom, setZoom] = useState<{ src: string; label: string } | null>(null);
   const b = s.board as Board;
   const file = useCallback((p: string) => (p ? `/g/${s.game}/${p}` : ""), [s.game]);
+  const body = useRef<HTMLElement>(null);  // the part that scrolls — the bar and the tabs above it stay put
   const flash = useRef<ReturnType<typeof setTimeout> | null>(null);
   const has = useRef(first.received);
 
@@ -86,7 +87,7 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
     const u = new URL(location.href);
     u.searchParams.set("tab", t);
     history.replaceState(null, "", u);
-    scrollTo({ top: 0 });
+    body.current?.scrollTo({ top: 0 });
   }
 
   const flow = b.stages.filter((x) => !x.common);
@@ -95,6 +96,7 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
 
   return (
     <>
+      <div className="screen">
       <header className="topbar">
         <div className="in">
           <a className="btn ghost" href="/" aria-label="All games">←</a>
@@ -112,7 +114,7 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
           </div>
         </div>
       </header>
-      <main className="wrap">
+      <div className="tabbar">
         <nav className="tabs" role="tablist">
           {TABS.map((t) => (
             <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? "on" : ""} onClick={() => go(t)}>
@@ -121,7 +123,9 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
             </button>
           ))}
         </nav>
-
+      </div>
+      <main className="body" ref={body}>
+       <div className="wrap">
         {s.now?.pause ? (
           <div className="pause small">The game&apos;s conversation is long{s.now.context ? ` — about ${Math.round(s.now.context / 1000)}k tokens, re-read every turn` : ""} — and the cycle is at a break.
             A good moment to type <code>/clear</code> then <code>/gamedev-kit:cycle next</code> in the session: same window, still connected to this dashboard.</div>
@@ -131,7 +135,9 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
         {tab === "review" ? <ReviewTab game={s.game} box={box} items={b.review} file={file} zoom={z} run={run} /> : null}
         {tab === "stages" ? <Stages b={b} sel={stage ?? flow[0]?.i ?? 0} pick={setStage} file={file} zoom={z} run={run} /> : null}
         {tab === "assets" ? <Assets a={b.assets} file={file} zoom={z} /> : null}
+       </div>
       </main>
+      </div>
       <SessionToasts box={box} />
       {zoom ? (
         <div className="zoombox" onClick={() => setZoom(null)} role="dialog" aria-label={zoom.label}>
