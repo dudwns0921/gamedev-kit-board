@@ -47,14 +47,39 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
     fetch(`/g/${s.game}/inbox`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((x) => x && setBox((b) => (b === NONE ? { ...NONE, ...(x as Inbox) } : b))).catch(() => {});
   }, [s.game, s.local]);
 
+  // The live connection — and it comes back by itself: a dashboard restarted (an update), a phone that slept or left the tab,
+  // a network that dropped. Each time it opens, what changed meanwhile is read at once.
   useEffect(() => {
     const es = new EventSource(`/g/${s.game}/events`);
-    es.onopen = () => setLive(true);
-    es.onerror = () => setLive(es.readyState === EventSource.OPEN);
+    let again: ReturnType<typeof setTimeout> | null = null;
+    const catchUp = () => {
+      fetch(`/g/${s.game}/summary`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((x) => x && take(x as Summary)).catch(() => {});
+      if (s.local) fetch(`/g/${s.game}/inbox`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((x) => x && setBox({ ...NONE, ...(x as Inbox) })).catch(() => {});
+    };
+    let opened = false;
+    es.onopen = () => { setLive(true); if (opened) catchUp(); opened = true; };
+    es.onerror = () => {
+      setLive(es.readyState === EventSource.OPEN);
+      if (es.readyState === EventSource.CLOSED && !again) again = setTimeout(() => setLink((n) => n + 1), 3000);  // the browser gave up — open a new one
+    };
+    const back = () => {
+      if (document.visibilityState !== "visible" || es.readyState === EventSource.OPEN) return;
+      setLink((n) => n + 1);
+    };
+    document.addEventListener("visibilitychange", back);
+    addEventListener("online", back);
+    addEventListener("pageshow", back);
     es.addEventListener("summary", (e) => take(JSON.parse((e as MessageEvent).data) as Summary));
     es.addEventListener("inbox", (e) => setBox({ ...NONE, ...(JSON.parse((e as MessageEvent).data) as Inbox) }));
-    return () => es.close();
-  }, [s.game, take, link]);
+    if (link) catchUp();  // a connection opened again: read what it missed
+    return () => {
+      es.close();
+      if (again) clearTimeout(again);
+      document.removeEventListener("visibilitychange", back);
+      removeEventListener("online", back);
+      removeEventListener("pageshow", back);
+    };
+  }, [s.game, s.local, take, link]);
 
   const refresh = useCallback(async () => {
     setBusy(true);
