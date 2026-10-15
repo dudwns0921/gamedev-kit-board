@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { GAME } from "@/lib/auth";
 import { summary } from "@/lib/games";
 import Dashboard from "./dashboard";
-import Live from "./live";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +10,6 @@ export default async function Board({ params, searchParams }: { params: Promise<
   if (!GAME.test(game)) notFound();
   const s = await summary(game);
   if (!s) notFound();
-  // A kit older than 0.43.0 sends no data to draw from — its own page is shown as it is
-  if (!s.board) return <Live game={game} name={s.name} received={s.received} share={s.share} />;
+  if (!s.board) return <div className="empty">This game&apos;s board has not arrived in full yet — the game&apos;s next Claude turn sends it.</div>;
   return <Dashboard first={s} tab={(await searchParams).tab ?? ""} />;
 }

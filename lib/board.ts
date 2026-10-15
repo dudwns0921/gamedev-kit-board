@@ -55,13 +55,12 @@ export type Summary = {
   drawn: string;
   received: string;
   complete: number;
-  share: string | null;
   now: { cycle: string; name: string; stage: string } | null;
   counts: { problems: number; not_made: number; placeholders: number; undecided: number; review: number; done?: number; old_style?: number };
   stages: { name: string; complete: number | null }[];
-  /** Sent only to a dashboard on the same machine: where the game and the kit are, so actions can run the kit's scripts there. */
-  local?: { root: string; kit: string; python: string; board?: string };
-  /** Everything the pages show — sent by kit 0.43.0 and later. Without it the kit's own page is shown. */
+  /** Sent only to a dashboard on the same machine: where the game's board folder is, so answers can be put in its inbox. */
+  local?: { root?: string; board?: string };
+  /** Everything the pages show. */
   board?: Board;
 };
 

@@ -91,11 +91,10 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
               {t === "review" && counts.review ? <span className="count">{counts.review}</span> : null}
             </button>
           ))}
-          <a className="small muted" href={`/g/${s.game}/kit`} style={{ marginLeft: "auto", alignSelf: "center", whiteSpace: "nowrap" }}>Kit page ↗</a>
         </nav>
 
         {tab === "overview" ? <Overview s={s} b={b} flow={flow} counts={counts} file={file} go={go} run={run} /> : null}
-        {tab === "review" ? <ReviewTab game={s.game} share={s.share} items={b.review} file={file} zoom={z} run={run} /> : null}
+        {tab === "review" ? <ReviewTab game={s.game} items={b.review} file={file} zoom={z} run={run} /> : null}
         {tab === "stages" ? <Stages b={b} sel={stage ?? flow[0]?.i ?? 0} pick={setStage} file={file} zoom={z} run={run} /> : null}
         {tab === "assets" ? <Assets a={b.assets} file={file} zoom={z} /> : null}
       </main>

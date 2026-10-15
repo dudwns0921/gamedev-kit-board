@@ -15,7 +15,7 @@ No chat and no prompt box here — Claude (desktop · app · terminal) is where 
 - **One user, on their machine — no sign-in.** It listens on 127.0.0.1 and is reached from elsewhere through the user's own tunnel (tailscale serve, an SSH forward).
   What is guarded is the browser (`lib/guard.ts`, run by `proxy.ts` and again in each route): a request must name this machine (`localhost` · `127.0.0.1` · `*.ts.net` · `BOARD_HOSTS`),
   and one that changes something must come from this app's own pages. The kit sends with a token (`INGEST_TOKEN`), which `serve` makes and keeps in the user's `board.env`.
-- **Game data stays on the machine.** Storage is `.data/` beside the app. (A private Vercel Blob store is still read when its variables are set — for a user who hosts it elsewhere.)
+- **Game data stays on the machine.** Storage is `.data/` beside the app — nothing else.
 - **Logic in `lib/`, routes stay thin.** Client components import only `lib/board.ts` (types and small helpers) — never the storage code.
 - **The data shape is the kit's.** `lib/board.ts` mirrors the kit's `board.json`. A field the kit adds passes through; change the kit first, then this.
 - **It only signals — it never acts on a game.** The one thing it writes into a game is a batch of answers in its inbox (`lib/inbox.ts`): an option, approve, OK,
@@ -35,7 +35,7 @@ End to end: run it (README "Run it by hand"), point a sample game at it, `board.
 ## Where it stands, and what is next
 
 Done: the dashboard of games (what waits across games) · one game drawn from data (overview · review · stages · assets), redrawn in place as a newer board arrives ·
-four themes (system · light · dark · kit) · the kit's own page at `/g/<game>/kit` · started by the kit's `serve`.
+four themes (system · light · dark · kit) · started by the kit's `serve`.
 
 Done since: **Not needed** on a decision (or an asset attempt waiting for approval) is sent to the session like any answer.
 **Answers straight to the session**: the Review tab holds everything that waits (every cycle's open decisions, the GDD's open questions, images, checks);

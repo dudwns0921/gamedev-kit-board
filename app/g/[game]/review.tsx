@@ -6,11 +6,8 @@ import NotNeeded, { type Run } from "./not-needed";
 
 export type Zoom = (src: string, label: string) => void;
 
-// Everything that waits on the user, on one page. How an answer reaches the game's session, the page says at the top:
-// - a game whose board came from this machine: "Send to the session" puts the answers in the game's inbox; the session is woken for them,
-//   acts, and the board follows — each card shows sent → taken by the session, and leaves once the board no longer asks it;
-// - a game on a claude.ai link only: the cards are a preview — answer there and press "Send to Claude";
-// - otherwise: "Copy answers" gives the lines to paste in the game's chat.
+// Everything that waits on the user, on one page. "Send to the session" puts the answers in the game's inbox; the session is woken for them,
+// acts, and the board follows — each card shows sent → taken by the session, and leaves once the board no longer asks it.
 // Picks are kept in this browser until sent; a question asked anew has a new key, so an old pick never answers it.
 
 type A = Record<string, { pick: string; note: string }>;
@@ -25,11 +22,6 @@ const GROUPS: { id: string; title: string; hit: (i: Review) => boolean; hint?: s
   { id: "check", title: "Check by playing", hit: (i) => i.kind === "check" },
 ];
 
-function label(i: Review): string {
-  return i.kind === "decision" ? i.ref : i.kind === "asset" ? `asset ${i.ref}` : i.kind === "question" ? `GDD “${i.ref.slice(0, 40)}”`
-    : i.kind === "style" ? `old-style asset ${i.ref}` : `check “${i.ref.slice(0, 40)}”`;
-}
-
 function choices(i: Review): { pick: string; text: string; mark?: string; tag?: string; no?: boolean }[] {
   if (i.kind === "decision") {
     const chose = [...i.proxy].find((ch) => i.options.some((o) => o.mark === ch)) ?? "";
@@ -43,16 +35,15 @@ function choices(i: Review): { pick: string; text: string; mark?: string; tag?: 
   return [{ pick: "ok", text: "OK" }, { pick: "problem", text: "Problem", no: true }];
 }
 
-export default function ReviewTab({ game, share, items, file, zoom, run }: {
-  game: string; share: string | null; items: Review[]; file: (p: string) => string; zoom: Zoom; run: Run | null;
+export default function ReviewTab({ game, items, file, zoom, run }: {
+  game: string; items: Review[]; file: (p: string) => string; zoom: Zoom; run: Run | null;
 }) {
   const store = `board-review:${game}`;
   const [a, setA] = useState<A>({});
   const [box, setBox] = useState<Box>({ sent: [], taken: [], relayed: [] });
   const [said, setSaid] = useState("");
   const [busy, setBusy] = useState(false);
-  const mode: "direct" | "link" | "copy" = run ? "direct" : share ? "link" : "copy";
-  const pickable = mode !== "link";
+  const pickable = Boolean(run); // a board sent from another machine has no inbox here to send to
 
   useEffect(() => {
     try {
@@ -64,10 +55,10 @@ export default function ReviewTab({ game, share, items, file, zoom, run }: {
 
   // where sent answers stand — checked often while any are on their way
   const look = useCallback(async () => {
-    if (mode !== "direct") return;
+    if (!run) return;
     const r = await fetch(`/g/${game}/inbox`, { cache: "no-store" }).catch(() => null);
     if (r?.ok) setBox((await r.json()) as Box);
-  }, [game, mode]);
+  }, [game, run]);
   useEffect(() => {
     look();
     const id = setInterval(() => { if (!document.hidden) look(); }, 3000);
@@ -85,17 +76,9 @@ export default function ReviewTab({ game, share, items, file, zoom, run }: {
   const working = [...box.taken, ...(box.relayed ?? [])];
   const inFlight = new Set([...box.sent, ...working]);
   const ready = items.filter((i) => !inFlight.has(i.key) && (a[i.key]?.pick || a[i.key]?.note));
-  const text = ready.map((i) => { const v = a[i.key]; return `${label(i)} → ${v.pick}${v.note ? " — " + v.note : ""}`; }).join("\n");
 
   async function deliver() {
     if (!ready.length) { setSaid("Pick an answer first."); return; }
-    if (mode === "copy") {
-      try {
-        await navigator.clipboard.writeText("Answers from the board — act on each:\n" + text);
-        setSaid("Copied — paste it in the game's Claude chat.");
-      } catch { setSaid(text); }
-      return;
-    }
     setBusy(true);
     const got = await run!({ action: "send", rows: ready.map((i) => ({ key: i.key, pick: a[i.key].pick, note: a[i.key].note })) });
     setBusy(false);
@@ -106,7 +89,7 @@ export default function ReviewTab({ game, share, items, file, zoom, run }: {
     }
   }
 
-  const idle = mode === "direct" && box.untaken
+  const idle = run && box.untaken
     ? <div className="card idle">No open session of this game has taken your answers. They wait in the game — open its Claude session, and it picks them up as it starts.</div> : null;
   if (!items.length) return <>{idle}<div className="empty">Nothing waits on you. New decisions, questions, images to approve and checks show up here as the game&apos;s session raises them.</div></>;
 
@@ -114,26 +97,13 @@ export default function ReviewTab({ game, share, items, file, zoom, run }: {
     <>
       {idle}
       <div className="card how">
-        {mode === "direct" ? (
+        {run ? (
           <ol>
             <li><b>Pick an answer</b> on each card you want to settle — a note is optional.</li>
             <li><b>Send to the session</b> (bottom bar). The game&apos;s open Claude session is woken for them — or the next one you open picks them up.</li>
             <li>The session records and works on them; this page only shows it — each card shows where it stands, and leaves once done.</li>
           </ol>
-        ) : mode === "link" ? (
-          <ol>
-            <li>Look the cards over here.</li>
-            <li><b>Answer on Claude</b> — the same cards; each tap is saved for the game&apos;s session.</li>
-            <li>Press <b>Send to Claude</b> there. The session wakes and acts; this board updates by itself.</li>
-          </ol>
-        ) : (
-          <ol>
-            <li><b>Tap an answer</b> on each card — a note is optional.</li>
-            <li><b>Copy answers</b> (bottom bar) and paste them in the game&apos;s Claude chat.</li>
-            <li>The session acts on them; this board updates by itself.</li>
-          </ol>
-        )}
-        {mode === "link" ? <a className="btn primary go" href={share!} target="_blank" rel="noreferrer">Answer on Claude ↗</a> : null}
+        ) : <span>This board was sent from another machine — answer in that game&apos;s Claude session.</span>}
       </div>
 
       {GROUPS.map((g) => {
@@ -190,7 +160,7 @@ export default function ReviewTab({ game, share, items, file, zoom, run }: {
           {inFlight.size ? <span className="small muted">· {box.sent.length} waiting · {working.length} with the session</span> : null}
           <div className="act">
             <button className="btn primary" onClick={deliver} disabled={!ready.length || busy}>
-              {mode === "direct" ? (busy ? "Sending…" : `Send to the session${ready.length ? ` (${ready.length})` : ""}`) : "Copy answers"}
+              {busy ? "Sending…" : `Send to the session${ready.length ? ` (${ready.length})` : ""}`}
             </button>
           </div>
           <span className="said">{said}</span>

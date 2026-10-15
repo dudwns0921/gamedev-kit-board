@@ -48,13 +48,12 @@ It has no sign-in, so it is not for hosting where others can reach it.
 
 | Path | What |
 |---|---|
-| `POST /api/ingest/<game>/check` | the kit lists the pictures its page shows (named by content); the answer is the ones missing |
+| `POST /api/ingest/<game>/check` | the kit lists the pictures and sounds its board points to (named by content); the answer is the ones missing |
 | `PUT /api/ingest/<game>/file/<name>` | one picture or sound |
-| `PUT /api/ingest/<game>/page` | the kit's own page, every page of it in one document |
 | `PUT /api/ingest/<game>/summary` | the board as data (`board.json`) — everything the dashboard draws |
 | `DELETE /api/ingest/<game>` | takes a game off (the next push from it puts it back) |
 | `/` | your games |
 | `/g/<game>` | one game: overview · review · stages · assets; checks for a newer board every 20 s |
-| `/g/<game>/kit` | the kit's own page for that game |
+| `/g/<game>/inbox` · `/g/<game>/act` | where sent answers stand · send answers to the game's inbox (the only thing it writes into a game) |
 
-Storage keys: `games/<game>/summary.json` · `page.html` · `f/<hash>.<ext>`.
+Storage keys, in `.data/`: `games/<game>/summary.json` · `f/<hash>.<ext>`.

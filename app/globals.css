@@ -207,7 +207,6 @@ details > summary { cursor: pointer; color: var(--tx3); font-size: 12.5px; paddi
 .how { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
 .how ol { margin: 0; padding-left: 18px; color: var(--tx2); font-size: 13px; }
 .how ol b { color: var(--tx); }
-.how .go { margin-left: auto; }
 .q { display: flex; flex-direction: column; gap: 10px; }
 .q h3 { font-size: 15px; }
 .q h3 code { font: 700 12px var(--mono); color: var(--accent); margin-right: 6px; }
@@ -238,17 +237,11 @@ details > summary { cursor: pointer; color: var(--tx3); font-size: 12.5px; paddi
 .live i { width: 7px; height: 7px; border-radius: 50%; background: var(--done); }
 .live.new { color: var(--done); }
 
-/* the kit's own page, for a game that sends no data yet */
-.frame { position: fixed; inset: 0; display: flex; flex-direction: column; }
-.frame iframe { flex: 1; width: 100%; border: 0; background: #07110e; }
-
-
 @media (max-width: 860px) {
   .split { grid-template-columns: minmax(0, 1fr); }
   .hide-sm { display: none; }
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .kpi b { font-size: 22px; }
-  .how .go { margin-left: 0; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 
