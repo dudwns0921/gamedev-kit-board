@@ -1,4 +1,3 @@
-import { requireSession } from "@/lib/auth";
 import { ago, games, type Summary } from "@/lib/games";
 import ThemePicker from "./theme-picker";
 
@@ -35,7 +34,6 @@ function Game({ s }: { s: Summary }) {
 }
 
 export default async function Home() {
-  await requireSession();
   const all = await games();
   const sum = (k: keyof typeof zero) => all.reduce((n, s) => n + ((s.counts ?? zero)[k] ?? 0), 0);
   const waiting = all.filter((s) => s.counts?.review);
@@ -46,7 +44,6 @@ export default async function Home() {
           <div className="title"><span className="lab">Game boards</span><b>Your games</b></div>
           <div className="right">
             <ThemePicker />
-            <form method="post" action="/api/logout"><button className="btn ghost" type="submit">Sign out</button></form>
           </div>
         </div>
       </header>

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { GAME, requireSession } from "@/lib/auth";
+import { GAME } from "@/lib/auth";
 import { summary } from "@/lib/games";
 import Dashboard from "./dashboard";
 import Live from "./live";
@@ -7,7 +7,6 @@ import Live from "./live";
 export const dynamic = "force-dynamic";
 
 export default async function Board({ params, searchParams }: { params: Promise<{ game: string }>; searchParams: Promise<{ tab?: string }> }) {
-  await requireSession();
   const { game } = await params;
   if (!GAME.test(game)) notFound();
   const s = await summary(game);

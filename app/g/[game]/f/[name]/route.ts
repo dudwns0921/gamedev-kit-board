@@ -1,10 +1,11 @@
-import { FILE, GAME, signedIn } from "@/lib/auth";
+import { FILE, GAME } from "@/lib/auth";
+import { trusted } from "@/lib/guard";
 import { read } from "@/lib/storage";
 
 // A picture or sound the board shows. Named by its content, so it never changes — the browser keeps it.
-export async function GET(_req: Request, { params }: { params: Promise<{ game: string; name: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ game: string; name: string }> }) {
   const { game, name } = await params;
-  if (!(await signedIn())) return new Response("sign in first", { status: 401 });
+  if (!trusted(req)) return new Response("not from this app", { status: 403 });
   if (!GAME.test(game) || !FILE.test(name)) return new Response("not found", { status: 404 });
   const got = await read(`games/${game}/f/${name}`);
   if (!got) return new Response("not found", { status: 404 });

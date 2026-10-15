@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { GAME, requireSession } from "@/lib/auth";
+import { GAME } from "@/lib/auth";
 import { summary } from "@/lib/games";
 import Live from "../live";
 
@@ -7,7 +7,6 @@ export const dynamic = "force-dynamic";
 
 // The kit's own page, as the game drew it — kept beside the dashboard while the two are compared.
 export default async function KitPage({ params }: { params: Promise<{ game: string }> }) {
-  await requireSession();
   const { game } = await params;
   if (!GAME.test(game)) notFound();
   const s = await summary(game);

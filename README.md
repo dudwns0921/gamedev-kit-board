@@ -13,7 +13,7 @@ python3 <kit>/skills/board/scripts/board.py serve
 ```
 
 That clones this repository to `~/.config/gamedev-kit/board-app`, builds it (once per version), starts it on `http://localhost:3100`, and sends the game's board. Needs git and Node.js.
-The sign-in password is made on the first run — it is `GAMEDEV_BOARD_PASSWORD` in `~/.config/gamedev-kit/board.env`. Run `serve` once in each game that should appear; after that every Claude turn in that game sends its board.
+There is no sign-in: it is yours, on your machine. Run `serve` once in each game that should appear; after that every Claude turn in that game sends its board.
 
 `serve --status` · `serve --stop`. After a restart of the machine, `serve` starts it again.
 
@@ -24,22 +24,23 @@ The server listens on your machine only. Reach it through one of:
 - **Tailscale** (phone and laptop): install it on both devices, then on the machine running the dashboard `tailscale serve --bg 3100`. Open the https address it prints — only your own devices reach it.
 - **SSH**: `ssh -L 3100:127.0.0.1:3100 <your machine>`, then open `http://127.0.0.1:3100` on the device you are on.
 
-Do not open the port to the internet.
+Do not open the port to the internet, and do not use `tailscale funnel` — there is no password; who can reach it can use it.
+The app answers only to `localhost`, `127.0.0.1` and a Tailscale name (`*.ts.net`; more in `BOARD_HOSTS`, comma-separated), and takes a change only from its own pages — another site open in your browser cannot reach it.
 
 ## What it does not do
 
-It does not chat and does not run anything. Answering what waits on you: tap the answers on the Review tab and copy them into the game's Claude chat — or, for a game whose board is on a claude.ai link, answer there and press "Send to Claude".
+It does not chat. Answering what waits on you: pick the answers on the Review tab and send them to the session — the game's open Claude session is woken for them, or the next one you open.
 
 ## Run it by hand (development)
 
 ```bash
 npm install
-APP_PASSWORD=pw SESSION_SECRET=dev INGEST_TOKEN=dev npm run dev
+INGEST_TOKEN=dev npm run dev
 ```
 
 Data goes to `.data/`. Point a game at it with `GAMEDEV_BOARD_URL=http://localhost:3000` and `GAMEDEV_BOARD_TOKEN=dev` (in the environment or `~/.config/gamedev-kit/board.env`), then `board.py push`.
 
-It can also run on a host of your own (Vercel with a private Blob store: `BLOB_STORE_ID` or `BLOB_READ_WRITE_TOKEN`, and the three variables above) — then set `GAMEDEV_BOARD_URL` to that address by hand.
+It has no sign-in, so it is not for hosting where others can reach it.
 
 ## How it fits together
 
