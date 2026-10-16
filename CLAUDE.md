@@ -47,7 +47,7 @@ the files are watched. Refresh (↻) reads both once more and reconnects.
 A batch no open session took (or one taken by a session that never read it) is shown as waiting for the next session — nothing more.
 
 **For you** cards (the kit's `cycle.py todo`): what only the user can do outside the chat, with its steps and the text to copy in one tap; one that waits for a file
-leaves when the kit's watcher sees the file and sends a newer board. A decision can carry sounds (mp3 · m4a · wav), heard on its card. The games page says when a game's session is at a good place to `/clear`.
+leaves when the kit's watcher sees the file and sends a newer board. A decision can carry sounds (mp3 · m4a · wav), heard on its card. The **Items** tab lists everything the board counts — problems, not made, placeholders, done — by stage, with where each state is read from and what closes it, under a table of how each state is counted; the Problems and Not made tiles open it. The games page says when a game's session is at a good place to `/clear`.
 
 Next, in order:
 1. Confirm in use that the desktop app wakes for a batch (the kit's monitor, or its after-turn hook).

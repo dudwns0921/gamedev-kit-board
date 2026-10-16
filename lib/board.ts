@@ -5,7 +5,8 @@
 
 export type St = "done" | "temp" | "none" | "bad";
 
-export type Item = { st: St; title: string; sub: string; note: string; img: string; audio: string; tags: string[]; code: string };
+// src: where its state is read from — gdd · slot · file · cycle · playtest · note (absent on a board from an older kit)
+export type Item = { st: St; title: string; sub: string; note: string; img: string; audio: string; tags: string[]; code: string; src?: string };
 
 export type Stage = {
   i: number;

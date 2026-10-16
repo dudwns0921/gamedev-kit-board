@@ -5,12 +5,13 @@ import { at, type Act, type Inbox, type Ask, type Board, type Item, type Model, 
 import ThemePicker from "../../theme-picker";
 import NotNeeded, { type Run } from "./not-needed";
 import ReviewTab, { type Zoom } from "./review";
+import Items from "./items";
 import { SessionPill, SessionToasts } from "./session";
 
 // One game, drawn from the data the kit sends. The page holds one connection (/g/<game>/events) and is told the moment a newer board
 // arrives or the game's inbox changes — it redraws in place, the open tab and stage stay. Nothing asks on a clock.
 // "Refresh" reads both once more and reconnects — for when the connection dropped (a sleeping laptop, a phone on the tunnel).
-const TABS = ["overview", "review", "stages", "assets"] as const;
+const TABS = ["overview", "review", "stages", "items", "assets"] as const;  // items: everything counted, in one list, with how it is counted
 type Tab = (typeof TABS)[number];
 const WORD: Record<St, string> = { done: "Done", temp: "Placeholder", none: "Not made", bad: "Problem" };
 const NONE: Inbox = { sent: [], taken: [], relayed: [], untaken: false };
@@ -24,6 +25,7 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
   const [link, setLink] = useState(0);
   const [tab, setTab] = useState<Tab>((TABS as readonly string[]).includes(firstTab) ? (firstTab as Tab) : "overview");
   const [stage, setStage] = useState<number | null>(null);
+  const [show, setShow] = useState<St | "all">("bad");
   const [zoom, setZoom] = useState<{ src: string; label: string } | null>(null);
   const b = s.board as Board;
   const file = useCallback((p: string) => (p ? `/g/${s.game}/${p}` : ""), [s.game]);
@@ -106,8 +108,9 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
     return () => removeEventListener("keydown", off);
   }, []);
 
-  function go(t: Tab, st: number | null = null) {
+  function go(t: Tab, st: number | null = null, only?: St) {
     setTab(t);
+    if (only) setShow(only);
     if (st !== null) setStage(st);
     const u = new URL(location.href);
     u.searchParams.set("tab", t);
@@ -159,6 +162,7 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
         {tab === "overview" ? <Overview s={s} b={b} flow={flow} counts={counts} file={file} go={go} run={run} /> : null}
         {tab === "review" ? <ReviewTab game={s.game} box={box} items={b.review} file={file} zoom={z} run={run} /> : null}
         {tab === "stages" ? <Stages b={b} sel={stage ?? flow[0]?.i ?? 0} pick={setStage} file={file} zoom={z} run={run} /> : null}
+        {tab === "items" ? <Items b={b} show={show} pick={setShow} /> : null}
         {tab === "assets" ? <Assets a={b.assets} file={file} zoom={z} /> : null}
        </div>
       </main>
@@ -220,7 +224,7 @@ function Legend() {
 
 function Overview({ s, b, flow, counts, file, go, run }: {
   s: Summary; b: Board; flow: Stage[]; counts: { review: number; problems: number };
-  file: (p: string) => string; go: (t: Tab, st?: number | null) => void; run: Run | null;
+  file: (p: string) => string; go: (t: Tab, st?: number | null, only?: St) => void; run: Run | null;
 }) {
   const now = b.cycles[b.cycles.length - 1];
   const rest = b.stages.find((x) => x.common);
@@ -231,8 +235,12 @@ function Overview({ s, b, flow, counts, file, go, run }: {
         <a className={`card kpi${counts.review ? " alert" : ""}`} href="?tab=review" onClick={(e) => { e.preventDefault(); go("review"); }}>
           <span className="lab">Waiting on you</span><b>{counts.review}</b><small>{counts.review ? "Review →" : "nothing to answer"}</small>
         </a>
-        <div className={`card kpi${counts.problems ? " alert" : ""}`}><span className="lab">Problems</span><b>{counts.problems}</b></div>
-        <div className="card kpi"><span className="lab">Not made</span><b>{s.counts.not_made}</b><small>placeholders {s.counts.placeholders}</small></div>
+        <a className={`card kpi${counts.problems ? " alert" : ""}`} href="?tab=items" onClick={(e) => { e.preventDefault(); go("items", null, "bad"); }}>
+          <span className="lab">Problems</span><b>{counts.problems}</b><small>{counts.problems ? "See them →" : "none"}</small>
+        </a>
+        <a className="card kpi" href="?tab=items" onClick={(e) => { e.preventDefault(); go("items", null, "none"); }}>
+          <span className="lab">Not made</span><b>{s.counts.not_made}</b><small>placeholders {s.counts.placeholders} · see them →</small>
+        </a>
       </div>
 
       <div className="split">
