@@ -14,6 +14,8 @@ export type Zoom = (src: string, label: string) => void;
 type A = Record<string, { pick: string; note: string }>;
 
 const GROUPS: { id: string; title: string; hit: (i: Review) => boolean; hint?: string }[] = [
+  // put off by the session to a later cycle (the kit's `cycle.py later --key`) — kept in sight at the bottom, not counted as waiting
+  { id: "later", title: "Later", hit: (i) => Boolean(i.later), hint: "Put off to a later cycle — nothing to do now. The next cycle's start lists them again." },
   { id: "todo", title: "For you to do", hit: (i) => i.kind === "todo",
     hint: "Things only you can do outside the chat. One that waits for a file closes by itself once you save it there." },
   { id: "now", title: "Decisions — this cycle", hit: (i) => i.kind === "decision" && i.latest !== false },
@@ -89,8 +91,8 @@ export default function ReviewTab({ game, box, items, file, zoom, run }: {
         ) : <span>This board was sent from another machine — answer in that game&apos;s Claude session.</span>}
       </div>
 
-      {GROUPS.map((g) => {
-        const its = items.filter(g.hit);
+      {[...GROUPS.slice(1), GROUPS[0]].map((g) => {
+        const its = items.filter((i) => (g.id === "later" ? g.hit(i) : !i.later && g.hit(i)));
         if (!its.length) return null;
         return (
           <section key={g.id} className="sec">

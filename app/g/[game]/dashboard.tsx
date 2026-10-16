@@ -120,7 +120,7 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
 
   const flow = b.stages.filter((x) => !x.common);
   const z: Zoom = (src, label) => setZoom({ src, label });
-  const counts = { review: b.review.length, problems: s.counts.problems };
+  const counts = { review: b.review.filter((i) => !i.later).length, problems: s.counts.problems };  // what was put off to a later cycle waits on no one now
 
   return (
     <>
