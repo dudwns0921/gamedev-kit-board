@@ -280,6 +280,10 @@ details > summary { cursor: pointer; color: var(--tx3); font-size: 12.5px; paddi
 .listen i { width: 8px; height: 8px; border-radius: 50%; background: var(--done); flex: none; }
 .figs figure.clip { grid-column: 1 / -1; }
 .figs figure.clip video { width: 100%; max-height: 420px; border-radius: 10px; border: 1px solid var(--border); background: #000; display: block; }
+.figs figure.clip audio { width: 100%; display: block; }
+.copy { display: grid; gap: 6px; margin: 8px 0; }
+.copy pre { margin: 0; padding: 10px 12px; max-height: 220px; overflow: auto; white-space: pre-wrap; word-break: break-word; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); font-size: 12.5px; line-height: 1.5; }
+.copy .btn { justify-self: start; }
 .listen.work i { background: var(--accent); }
 
 /* the game's Claude session: a pill in the top bar, a toast when it changes */

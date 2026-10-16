@@ -29,6 +29,7 @@ function Game({ s, session }: { s: Summary; session: keyof typeof SESSION | null
       <div className="stages">{(s.stages ?? []).map((st, i) => <div key={i} title={`${st.name} · ${st.complete ?? "—"}%`}><i style={{ width: `${st.complete ?? 0}%` }} /></div>)}</div>
       <div className="chips">
         {c.review ? <span className="chip bad">Waiting on you {c.review}</span> : <span className="chip acc">Nothing waits</span>}
+        {s.now?.pause ? <span className="chip" title="The game's conversation is long and the cycle is at a break — /clear, then /gamedev-kit:cycle next">Time to /clear</span> : null}
         {c.problems ? <span className="chip bad">Problems {c.problems}</span> : null}
         {c.not_made ? <span className="chip">Not made {c.not_made}</span> : null}
         {c.placeholders ? <span className="chip">Placeholders {c.placeholders}</span> : null}
@@ -63,7 +64,7 @@ export default async function Home() {
           <>
             <div className="kpis">
               <div className="card kpi"><span className="lab">Games</span><b>{all.length}</b></div>
-              <div className={`card kpi${sum("review") ? " alert" : ""}`}><span className="lab">Waiting on you</span><b>{sum("review")}</b><small>decisions, questions, checks</small></div>
+              <div className={`card kpi${sum("review") ? " alert" : ""}`}><span className="lab">Waiting on you</span><b>{sum("review")}</b><small>to-dos, decisions, questions, checks</small></div>
               <div className={`card kpi${sum("problems") ? " alert" : ""}`}><span className="lab">Problems</span><b>{sum("problems")}</b></div>
             </div>
             {waiting.length ? (

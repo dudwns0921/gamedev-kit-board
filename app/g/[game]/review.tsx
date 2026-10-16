@@ -14,6 +14,8 @@ export type Zoom = (src: string, label: string) => void;
 type A = Record<string, { pick: string; note: string }>;
 
 const GROUPS: { id: string; title: string; hit: (i: Review) => boolean; hint?: string }[] = [
+  { id: "todo", title: "For you to do", hit: (i) => i.kind === "todo",
+    hint: "Things only you can do outside the chat. One that waits for a file closes by itself once you save it there." },
   { id: "now", title: "Decisions — this cycle", hit: (i) => i.kind === "decision" && i.latest !== false },
   { id: "earlier", title: "Decisions left in earlier cycles", hit: (i) => i.kind === "decision" && i.latest === false,
     hint: "Still open from cycles that have moved on. Answer, or mark not needed." },
@@ -29,6 +31,7 @@ function choices(i: Review): { pick: string; text: string; mark?: string; tag?: 
     return i.proxy ? [{ pick: "accept", mark: "✓", text: `Accept ${chose || i.proxy}` }, ...opts] : opts;
   }
   if (i.kind === "question") return [{ pick: "answer", text: "Answer (in the note)" }, { pick: "drop", text: "Not needed", no: true }];
+  if (i.kind === "todo") return [{ pick: "done", text: "Done" }, { pick: "drop", text: "Not needed", no: true }];
   return [{ pick: "ok", text: "OK" }, { pick: "problem", text: "Problem", no: true }];
 }
 
@@ -103,10 +106,13 @@ export default function ReviewTab({ game, box, items, file, zoom, run }: {
                     {where ? <span className={`state ${where}`}>{where === "sent" ? "Sent — waiting for the session" : "The session is on it"}</span> : null}
                     {!where && i.later ? <span className="state later">Waiting — a later cycle: {i.later}</span> : null}
                     {i.kind === "decision" ? <span className="lab">{[i.latest === false ? `cycle ${i.cycle}` : "", i.who, i.proxy ? "decided for you" : ""].filter(Boolean).join(" · ")}</span> : null}
-                    <h3>{i.kind === "decision" ? <code>{i.ref}</code> : null}{i.title}</h3>
+                    {i.kind === "todo" ? <span className="lab">{[i.latest === false ? `cycle ${i.cycle}` : "", "outside the chat"].filter(Boolean).join(" · ")}</span> : null}
+                    <h3>{i.kind === "decision" || i.kind === "todo" ? <code>{i.ref}</code> : null}{i.title}</h3>
                     {i.kind === "question" && i.text ? <div className="small muted">{i.text}</div> : null}
-                    {i.kind === "decision" && i.why ? <div className="why">{i.why}</div> : null}
-                    {i.kind === "decision" && i.pictures.length ? <div className="figs">{i.pictures.map((p, n) => <Pic key={n} p={p} file={file} zoom={zoom} />)}</div> : null}
+                    {(i.kind === "decision" || i.kind === "todo") && i.why ? <div className="why">{i.why}</div> : null}
+                    {i.kind === "todo" && i.detail ? <Copy text={i.detail} /> : null}
+                    {i.kind === "todo" && i.wait ? <div className="small muted">Save it as <code>{i.wait}</code> — this card closes by itself once it is there.</div> : null}
+                    {(i.kind === "decision" || i.kind === "todo") && i.pictures.length ? <div className="figs">{i.pictures.map((p, n) => <Pic key={n} p={p} file={file} zoom={zoom} />)}</div> : null}
                     <div className={`opts${i.kind === "decision" ? "" : " pair"}`}>
                       {opts.map((o) => (
                         <button key={o.pick} className={`opt${o.no ? " no" : ""}${v?.pick === o.pick ? " on" : ""}`} disabled={!pickable || !!where}
@@ -145,13 +151,29 @@ export default function ReviewTab({ game, box, items, file, zoom, run }: {
   );
 }
 
+// what a to-do hands over to paste elsewhere (a prompt, settings) — shown whole, copied in one tap
+function Copy({ text }: { text: string }) {
+  const [done, setDone] = useState(false);
+  return (
+    <div className="copy">
+      <pre>{text}</pre>
+      <button className="btn" onClick={() => { navigator.clipboard?.writeText(text).then(() => { setDone(true); setTimeout(() => setDone(false), 1500); }, () => {}); }}>
+        {done ? "Copied" : "Copy"}
+      </button>
+    </div>
+  );
+}
+
 const CLIP = /\.(mp4|webm|m4v|mov)$/i;
+const SOUND = /\.(mp3|m4a|wav)$/i;
 
 function Pic({ p, file, zoom }: { p: Picture; file: (s: string) => string; zoom: Zoom }) {
   if (!p.src) return <figure><figcaption>{p.label}</figcaption><div className="im" /></figure>;
   const src = file(p.src);
   // a clip of play — for a choice about motion, timing or feel; muted, looping, played where it stands
   if (CLIP.test(p.src)) return <figure className="clip"><figcaption>{p.label}</figcaption><video src={src} controls muted loop playsInline preload="metadata" /></figure>;
+  // a sound to hear — a voice line, an effect, a loop; one bar each, so the options are heard one after another
+  if (SOUND.test(p.src)) return <figure className="clip"><figcaption>{p.label}</figcaption><audio src={src} controls preload="metadata" /></figure>;
   if (p.crop && p.size) {
     const [x, y, w, h] = p.crop;
     const pct = (v: number, of: number) => `${(100 * v) / of}%`;
