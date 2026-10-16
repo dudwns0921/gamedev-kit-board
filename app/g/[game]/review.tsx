@@ -122,7 +122,7 @@ export default function ReviewTab({ game, box, items, file, zoom, run }: {
                       ))}
                     </div>
                     {i.kind === "decision" && i.reason && i.recommend ? <div className="small muted">Recommended {i.recommend} — {i.reason}</div> : null}
-                    {i.kind === "decision" && i.detail ? <details className="detail small"><summary>Detail</summary><div>{i.detail}</div></details> : null}
+                    {(i.kind === "decision" || i.kind === "check") && i.detail ? <details className="detail small"><summary>Detail</summary><div>{i.detail}</div></details> : null}
                     {pickable && !where ? <textarea className="note" rows={1}
                       placeholder={i.kind === "question" ? "Your answer" : i.kind === "decision" ? "Note (optional)" : "What did you see?"}
                       value={v?.note ?? ""} onChange={(e) => set(i.key, { note: e.target.value })} /> : null}

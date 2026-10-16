@@ -43,7 +43,7 @@ export type Review = (
   | { kind: "todo"; key: string; ref: string; title: string; cycle: string; doc?: string; latest?: boolean; pictures: Picture[];
       why?: string; detail?: string; wait?: string }  // something only the user can do outside the chat · its steps · what to copy · the file that closes it
   | { kind: "question"; key: string; ref: string; title: string; text: string }
-  | { kind: "check"; key: string; ref: string; title: string; cycle: string }
+  | { kind: "check"; key: string; ref: string; title: string; cycle: string; detail?: string }  // detail: a tuning hint an older document wrote after the question
 ) & { later?: string };  // put off to a later cycle by the session — waiting, not in hand
 
 export type Model = { name: string; img: string; tool: string; st: St; state: string; old: boolean; sample: boolean; reference: boolean; what: string; rejected: number };
