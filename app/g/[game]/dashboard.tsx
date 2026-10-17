@@ -290,21 +290,25 @@ function Overview({ s, b, flow, counts, file, go }: {
         <div className="sec-h"><h2>The game</h2><span className="lab">in the order the player meets it — each stage as its latest screen</span></div>
         <div className="film" style={{ ["--n" as string]: flow.length || 1 }}>
           {loops.length ? <div className="loop" style={{ gridColumn: `${loops[0] + 1} / ${loops[loops.length - 1] + 2}` }}><span>repeats</span></div> : null}
-          {flow.map((st) => (
-            <button key={st.i} className={`card link shotcard${opens(st).bad ? " warn" : ""}`} onClick={() => go("stages", st.i)}>
+          {flow.map((st) => {
+            const busy = now ? st.work.filter((w) => w.cycle === now.num).flatMap((w) => w.tasks) : [];  // what the cycle in hand does in this stage
+            return (
+            <button key={st.i} className={`card link shotcard${opens(st).bad ? " warn" : ""}${busy.length ? " busy" : ""}`} onClick={() => go("stages", st.i)}>
               {st.image ? (
                 <div className="shot" style={{ backgroundImage: `url(${file(st.image)})` }}>
                   {st.shot ? <span className={`age${st.shot.behind >= 2 ? " old" : ""}`}>cycle {st.shot.cycle}{st.shot.behind >= 2 ? ` · ${st.shot.behind} cycles old` : ""}</span> : null}
                 </div>
               ) : <div className="shot none"><span>No screen yet<br />shot at the next Play</span></div>}
               <div className="in">
+                {busy.length ? <span className="busy">in cycle {now?.num} · {busy.map((t) => t.num).join(" · ")}</span> : null}
                 <span className="lab">{String(st.i + 1).padStart(2, "0")}{st.loop ? " · loop" : ""}</span>
                 <h3>{st.name}</h3>
                 {st.about ? <div className="small muted">{st.about}</div> : null}
                 <OpenChips st={st} />
               </div>
             </button>
-          ))}
+            );
+          })}
         </div>
       </section>
 

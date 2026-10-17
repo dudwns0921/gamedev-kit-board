@@ -378,3 +378,6 @@ a.card.kpi { color: inherit; text-decoration: none; }
   .cycstrip { grid-template-columns: repeat(6, minmax(160px, 1fr)); overflow-x: auto; }
 }
 @media (max-width: 700px) { .now { grid-template-columns: minmax(0, 1fr); } }
+.shotcard { position: relative; }
+.shotcard.busy { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.shotcard .busy { align-self: flex-start; font: 700 10.5px var(--mono); padding: 2px 8px; border-radius: 5px; background: var(--accent); color: var(--on-accent); }
