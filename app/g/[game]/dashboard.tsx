@@ -199,21 +199,6 @@ function Meter({ items }: { items: Item[] }) {
   );
 }
 
-function Lanes({ b, st }: { b: Board; st: Stage }) {
-  return (
-    <div className="lanes">
-      {b.lanes.map((l) => {
-        const items = st.lanes[l.key] ?? [];
-        return [
-          <span key={l.key + "n"}>{l.label}</span>,
-          items.length ? <Meter key={l.key + "m"} items={items} /> : <div key={l.key + "m"} className="meter" />,
-          <em key={l.key + "c"}>{items.length ? `${tally(items).done}/${items.length}` : "—"}</em>,
-        ];
-      })}
-    </div>
-  );
-}
-
 function Legend() {
   return (
     <div className="legend">
@@ -222,99 +207,150 @@ function Legend() {
   );
 }
 
-function Overview({ s, b, flow, counts, file, go, run }: {
+// What is still open in a stage, in words a card can carry — problems · not made · placeholders · not yet checked by playing.
+function opens(st: Stage) {
+  const made = ["function", "art", "sound"].flatMap((k) => st.lanes[k] ?? []);
+  const all = Object.values(st.lanes).flat();
+  return {
+    bad: all.filter((i) => i.st === "bad").length,
+    none: made.filter((i) => i.st === "none").length,
+    temp: made.filter((i) => i.st === "temp").length,
+    check: (st.lanes.verified ?? []).filter((i) => i.st === "temp" || i.st === "none").length,
+    all: all.length,
+  };
+}
+
+function OpenChips({ st }: { st: Stage }) {
+  const o = opens(st);
+  const chips: [string, string, number][] = [
+    ["bad", `${o.bad} problem${o.bad > 1 ? "s" : ""}`, o.bad], ["bad", `${st.open.length} undecided`, st.open.length],
+    ["", `${o.none} not made`, o.none], ["warn", `${o.temp} placeholder${o.temp > 1 ? "s" : ""}`, o.temp], ["acc", `${o.check} to check`, o.check],
+  ];
+  const shown = chips.filter(([, , n]) => n);
+  return (
+    <div className="chips">
+      {shown.length ? shown.map(([cls, w]) => <span key={w} className={`chip ${cls}`}>{w}</span>)
+        : <span className="chip ok">{o.all ? "✓ all made and checked" : "nothing counted yet"}</span>}
+    </div>
+  );
+}
+
+const STEPS = ["Goal", "Spec", "Design", "Plan", "Build", "Play"];
+const MARK: Record<string, [string, string]> = { x: ["done", "✓"], "!": ["blocked", "!"], " ": ["open", "○"] };
+
+function Overview({ s, b, flow, counts, file, go }: {
   s: Summary; b: Board; flow: Stage[]; counts: { review: number; problems: number };
   file: (p: string) => string; go: (t: Tab, st?: number | null, only?: St) => void; run: Run | null;
 }) {
   const now = b.cycles[b.cycles.length - 1];
   const rest = b.stages.find((x) => x.common);
+  const stray = rest ? Object.values(rest.lanes).reduce((n, l) => n + l.length, 0) : 0;
+  const steps = b.steps ?? STEPS;
+  const at = now ? steps.indexOf(now.stage) : -1;
+  const tasks = (now?.list ?? []).filter((t) => t.mark !== "-");
+  const all = { done: s.counts.done ?? 0, temp: s.counts.placeholders, none: s.counts.not_made, bad: s.counts.problems };
+  const loops = flow.filter((x) => x.loop).map((x) => flow.indexOf(x));
   return (
     <>
-      <div className="kpis">
-        <div className="card kpi"><span className="lab">Complete</span><b>{s.complete}%</b><small>average of the stages</small></div>
-        <a className={`card kpi${counts.review ? " alert" : ""}`} href="?tab=review" onClick={(e) => { e.preventDefault(); go("review"); }}>
-          <span className="lab">Waiting on you</span><b>{counts.review}</b><small>{counts.review ? "Review →" : "nothing to answer"}</small>
-        </a>
-        <a className={`card kpi${counts.problems ? " alert" : ""}`} href="?tab=items" onClick={(e) => { e.preventDefault(); go("items", null, "bad"); }}>
-          <span className="lab">Problems</span><b>{counts.problems}</b><small>{counts.problems ? "See them →" : "none"}</small>
-        </a>
-        <a className="card kpi" href="?tab=items" onClick={(e) => { e.preventDefault(); go("items", null, "none"); }}>
-          <span className="lab">Not made</span><b>{s.counts.not_made}</b><small>placeholders {s.counts.placeholders} · see them →</small>
-        </a>
-      </div>
+      {now ? (
+        <section className="card now">
+          <div className="what">
+            <span className="lab">Now · cycle {now.num} — {now.name}</span>
+            <div className="steps">
+              {steps.map((k, i) => (
+                <span key={k} className={`step${k === now.stage ? " on" : now.skipped?.includes(k) ? " skip" : now.stage === "Closed" || (at >= 0 && i < at) ? " past" : ""}`}>{k}</span>
+              ))}
+            </div>
+            <h2>{now.line || now.name}</h2>
+            {now.line && now.goal ? <p className="small muted clamp">{now.goal}</p> : null}
+            {tasks.length ? (
+              <>
+                <span className="lab">Tasks {tasks.filter((t) => t.mark === "x").length}/{tasks.length}</span>
+                <ul className="tasks">
+                  {tasks.slice(0, 8).map((t) => {
+                    const [cls, sign] = MARK[t.mark] ?? MARK[" "];
+                    return <li key={t.num} className={cls} title={t.title}><i>{sign}</i><b>{t.num}</b><span>{t.title}</span></li>;
+                  })}
+                  {tasks.length > 8 ? <li className="more">+{tasks.length - 8} more</li> : null}
+                </ul>
+              </>
+            ) : null}
+          </div>
+          {counts.review ? (
+            <a className="turn" href="?tab=review" onClick={(e) => { e.preventDefault(); go("review"); }}>
+              <b>{counts.review}</b><span>waiting on you<small>decisions · checks by playing · to-dos</small></span><em>Review →</em>
+            </a>
+          ) : (
+            <div className="turn calm"><b>0</b><span>nothing waits on you<small>the session is on it</small></span></div>
+          )}
+        </section>
+      ) : null}
 
-      <div className="split">
-        <section className="sec">
-          <div className="sec-h"><h2>Stages</h2><span className="lab">in the order the player meets them</span><span style={{ marginLeft: "auto" }}><Legend /></span></div>
-          <div className="flow">
-            {flow.map((st) => (
-              <button key={st.i} className="card link stage" onClick={() => go("stages", st.i)}>
-                {st.image ? <div className="hero" style={{ backgroundImage: `url(${file(st.image)})` }} /> : null}
-                <div className="top">
-                  <Ring p={st.complete} />
-                  <div style={{ minWidth: 0 }}>
-                    <span className="lab">{String(st.i + 1).padStart(2, "0")}{st.loop ? " · loop" : ""}</span>
-                    <h3>{st.name}</h3>
-                  </div>
+      <section className="sec">
+        <div className="sec-h"><h2>The game</h2><span className="lab">in the order the player meets it — each stage as its latest screen</span></div>
+        <div className="film" style={{ ["--n" as string]: flow.length || 1 }}>
+          {loops.length ? <div className="loop" style={{ gridColumn: `${loops[0] + 1} / ${loops[loops.length - 1] + 2}` }}><span>repeats</span></div> : null}
+          {flow.map((st) => (
+            <button key={st.i} className={`card link shotcard${opens(st).bad ? " warn" : ""}`} onClick={() => go("stages", st.i)}>
+              {st.image ? (
+                <div className="shot" style={{ backgroundImage: `url(${file(st.image)})` }}>
+                  {st.shot ? <span className={`age${st.shot.behind >= 2 ? " old" : ""}`}>cycle {st.shot.cycle}{st.shot.behind >= 2 ? ` · ${st.shot.behind} cycles old` : ""}</span> : null}
                 </div>
+              ) : <div className="shot none"><span>No screen yet<br />shot at the next Play</span></div>}
+              <div className="in">
+                <span className="lab">{String(st.i + 1).padStart(2, "0")}{st.loop ? " · loop" : ""}</span>
+                <h3>{st.name}</h3>
                 {st.about ? <div className="small muted">{st.about}</div> : null}
-                <Lanes b={b} st={st} />
-                {st.open.length ? <div className="chips"><span className="chip bad">Undecided {st.open.length}</span></div> : null}
-              </button>
+                <OpenChips st={st} />
+              </div>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="sec">
+        <div className="sec-h"><h2>What is left</h2><span className="lab">counts of what is still open</span></div>
+        <div className="left">
+          <a className={`card kpi${counts.review ? " you" : ""}`} href="?tab=review" onClick={(e) => { e.preventDefault(); go("review"); }}>
+            <span className="lab">Waiting on you</span><b>{counts.review}</b>
+          </a>
+          <a className={`card kpi${counts.problems ? " alert" : ""}`} href="?tab=items" onClick={(e) => { e.preventDefault(); go("items", null, "bad"); }}>
+            <span className="lab">Problems</span><b>{counts.problems}</b>
+          </a>
+          <a className="card kpi" href="?tab=items" onClick={(e) => { e.preventDefault(); go("items", null, "none"); }}>
+            <span className="lab">Not made</span><b>{s.counts.not_made}</b>
+          </a>
+          <a className="card kpi warn" href="?tab=items" onClick={(e) => { e.preventDefault(); go("items", null, "temp"); }}>
+            <span className="lab">Placeholders</span><b>{s.counts.placeholders}</b>
+          </a>
+          <div className="card whole">
+            <div className="meter big">
+              {(["done", "temp", "none", "bad"] as St[]).map((k) => (all[k] ? <i key={k} className={`st-${k}`} style={{ flex: all[k] }} /> : null))}
+            </div>
+            <div className="legend">
+              {(["done", "temp", "none", "bad"] as St[]).map((k) => <span key={k}><i className={`dot st-${k}`} />{all[k]} {WORD[k].toLowerCase()}</span>)}
+            </div>
+            {stray && rest ? (
+              <a className="small stray" href="?tab=stages" onClick={(e) => { e.preventDefault(); go("stages", rest.i); }}>{stray} in no stage yet — place them →</a>
+            ) : null}
+          </div>
+        </div>
+      </section>
+
+      {b.cycles.length > 1 ? (
+        <section className="sec">
+          <div className="sec-h"><h2>Cycles</h2><span className="lab">what each one looked like</span></div>
+          <div className="cycstrip">
+            {[...b.cycles].reverse().slice(0, 6).map((c) => (
+              <div key={c.num} className="cyc">
+                {c.shot ? <div className="shot" style={{ backgroundImage: `url(${file(c.shot)})` }} /> : <div className="shot none"><span>no screen kept</span></div>}
+                <b>{c.num} · {c.name}</b>
+                <small className="muted">{c.stage} · tasks {c.tasks.done}/{c.tasks.done + c.tasks.open + c.tasks.blocked}</small>
+              </div>
             ))}
           </div>
-          {rest && Object.values(rest.lanes).some((l) => l.length) ? (
-            <button className="card link stage" onClick={() => go("stages", rest.i)}>
-              <div className="sec-h"><span className="lab">In no stage — not counted in the %</span></div>
-              <h3>{rest.name} {Object.values(rest.lanes).reduce((n, l) => n + l.length, 0)}</h3>
-              <Lanes b={b} st={rest} />
-            </button>
-          ) : null}
         </section>
-
-        <aside className="sec">
-          {now ? (
-            <>
-              <div className="sec-h"><h2>Now</h2></div>
-              <div className="card sec">
-                <span className="lab">Cycle {now.num} · {now.stage}</span>
-                <h3>{now.name}</h3>
-                {now.goal ? <div className="small muted">{now.goal.length > 220 ? now.goal.slice(0, 220) + "…" : now.goal}</div> : null}
-                <div className="chips">
-                  <span className="chip acc">Tasks {now.tasks.done}/{now.tasks.done + now.tasks.open + now.tasks.blocked}</span>
-                  {now.tasks.blocked ? <span className="chip bad">Blocked {now.tasks.blocked}</span> : null}
-                  {now.decisions.open ? <span className="chip bad">Decisions open {now.decisions.open}</span> : null}
-                </div>
-              </div>
-            </>
-          ) : null}
-          <div className="sec-h"><h2>Undecided</h2><span className="lab">{b.asks.length}</span>
-            <a className="more" href="?tab=review" onClick={(e) => { e.preventDefault(); go("review"); }}>Answer in Review →</a></div>
-          <div className="card">
-            {b.asks.length ? (
-              <ul className="list">
-                {b.asks.slice(0, 8).map((q, i) => <AskRow key={i} q={q} run={run} />)}
-                {b.asks.length > 8 ? <li><button className="btn ghost" onClick={() => go("stages")}>+{b.asks.length - 8} more, by stage →</button></li> : null}
-              </ul>
-            ) : <span className="muted small">Nothing undecided.</span>}
-          </div>
-          {b.cycles.length > 1 ? (
-            <>
-              <div className="sec-h"><h2>Cycles</h2></div>
-              <div className="card">
-                <ul className="list">
-                  {[...b.cycles].reverse().map((c) => (
-                    <li key={c.num}>
-                      <i className={`dot st-${c.stage === "Closed" ? "done" : "temp"}`} />
-                      <div className="t"><b>{c.num} — {c.name}</b><small>{c.stage}{c.start ? ` · started ${c.start}` : ""} · tasks {c.tasks.done}/{c.tasks.done + c.tasks.open + c.tasks.blocked}</small></div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </>
-          ) : null}
-        </aside>
-      </div>
+      ) : null}
       <div className="small muted">Drawn {s.drawn} · every state is read as written in the GDD table, asset records, cycle and playtest documents.</div>
     </>
   );

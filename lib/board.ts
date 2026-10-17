@@ -16,6 +16,8 @@ export type Stage = {
   loop: boolean;
   complete: number | null;
   image: string;
+  /** image is the screen a cycle shot of this stage (the kit's `cycle.py shot`): which cycle, and how many cycles behind the newest one. null: no screen shot yet */
+  shot?: { cycle: string; behind: number } | null;
   lanes: Record<string, Item[]>;
   open: Ask[];
   work: { cycle: string; name: string; stage: string; tasks: { num: string; title: string; mark: string; did: string }[] }[];
@@ -52,7 +54,12 @@ export type Board = {
   lanes: { key: string; label: string }[];
   stages: Stage[];
   asks: (Ask & { stage: number })[];
-  cycles: { num: string; name: string; stage: string; start: string; goal: string;
+  /** The stages of a cycle, in order (Goal … Play) — a cycle's stage is one of them, or Closed. */
+  steps?: string[];
+  /** line: the goal in one line (`cycle.py line`) · shot: the first screen the cycle shot · skipped: the stages it chose not to run ·
+   *  list: the newest cycle's tasks (empty for the others). */
+  cycles: { num: string; name: string; stage: string; start: string; goal: string; line?: string; shot?: string; skipped?: string[];
+    list?: { num: string; title: string; mark: string }[];
     tasks: { done: number; open: number; blocked: number }; decisions: { open: number; all: number } }[];
   review: Review[];
   assets: { style: string; world: string; learned: string[]; sound: string; models: Model[]; loose: Model[]; sounds: Item[] };
@@ -66,7 +73,7 @@ export type Summary = {
   complete: number;
   /** pause: the cycle waits on the user (decisions asked, or time to play) and the game's conversation has grown long — a good moment to /clear it.
    *  context: that conversation's size in tokens, as the kit's context hook kept it. */
-  now: { cycle: string; name: string; stage: string; pause?: boolean; context?: number } | null;
+  now: { cycle: string; name: string; stage: string; line?: string; pause?: boolean; context?: number } | null;
   counts: { problems: number; not_made: number; placeholders: number; undecided: number; review: number; done?: number; old_style?: number };
   stages: { name: string; complete: number | null }[];
   /** Sent only to a dashboard on the same machine: where the game's board folder is, so answers can be put in its inbox. */

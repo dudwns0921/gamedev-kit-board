@@ -328,3 +328,53 @@ details > summary { cursor: pointer; color: var(--tx3); font-size: 12.5px; paddi
 .list.card { padding: 4px 14px; }
 .list .t small.closes { color: var(--tx2); }
 a.card.kpi { color: inherit; text-decoration: none; }
+
+/* overview: the cycle in hand, the game as screens, what is left, the cycles as pictures */
+.now { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 18px; }
+.now .what { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.now h2 { font-size: 21px; line-height: 1.3; text-wrap: balance; }
+.clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.steps { display: flex; gap: 4px; flex-wrap: wrap; }
+.step { font: 600 11px var(--mono); padding: 2px 9px; border-radius: 999px; background: var(--surface2); color: var(--tx3); }
+.step.past { color: var(--done); }
+.step.on { background: var(--accent); color: var(--on-accent); }
+.step.skip { text-decoration: line-through; opacity: .6; }
+.tasks { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr)); gap: 2px 16px; font-size: 12.5px; }
+.tasks li { display: flex; gap: 7px; align-items: baseline; min-width: 0; }
+.tasks li span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.tasks i { font-style: normal; width: 12px; flex: none; color: var(--tx3); }
+.tasks b { font: 11px var(--mono); color: var(--tx3); flex: none; }
+.tasks .done { color: var(--tx2); } .tasks .done i { color: var(--done); }
+.tasks .blocked, .tasks .blocked i { color: var(--bad); }
+.tasks .more { color: var(--tx3); }
+.turn { display: flex; flex-direction: column; justify-content: center; gap: 4px; border-radius: 12px; padding: 14px 16px; background: var(--accent-soft); color: var(--tx); }
+.turn b { font: 800 32px/1 var(--mono); color: var(--accent); }
+.turn small { display: block; color: var(--tx3); font-size: 11.5px; }
+.turn em { font-style: normal; font-weight: 700; color: var(--accent); margin-top: 2px; }
+.turn.calm { background: var(--surface2); } .turn.calm b { color: var(--tx3); }
+.film { display: grid; gap: 12px; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); position: relative; padding-top: 14px; }
+.film .loop { grid-row: 1; height: 12px; margin: -14px 6px 0; border: 1.5px dashed var(--tx3); border-bottom: 0; border-radius: 10px 10px 0 0; position: relative; }
+.film .loop span { position: absolute; top: -9px; left: 50%; transform: translateX(-50%); background: var(--bg); padding: 0 8px; font-size: 11px; color: var(--tx3); }
+.shotcard { grid-row: 2; padding: 0; overflow: hidden; display: flex; flex-direction: column; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.shotcard.warn { border-color: color-mix(in srgb, var(--bad) 55%, var(--border)); }
+.shotcard .in { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.shotcard .chips { margin-top: auto; }
+.shot { position: relative; aspect-ratio: 16 / 9; max-width: 100%; background: #0d0d0c center / cover no-repeat; }
+.shot .age { position: absolute; left: 8px; top: 8px; font: 600 10.5px var(--mono); color: #fff; background: rgba(0, 0, 0, .65); padding: 2px 7px; border-radius: 5px; }
+.shot .age.old { background: var(--temp); color: #1b1b1a; }
+.shot.none { display: grid; place-items: center; text-align: center; font-size: 11.5px; color: var(--tx3); background: repeating-linear-gradient(135deg, var(--surface2) 0 10px, var(--surface) 10px 20px); }
+.chip.ok { background: transparent; border-color: transparent; color: var(--done); padding-left: 0; }
+.left { display: grid; gap: 10px; grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 1.6fr); }
+.kpi.you { background: var(--accent-soft); border-color: transparent; } .kpi.you b { color: var(--accent); }
+.whole { display: flex; flex-direction: column; justify-content: center; gap: 8px; }
+.meter.big { height: 10px; }
+.stray { color: color-mix(in srgb, var(--temp) 70%, var(--tx)); font-weight: 600; }
+.cycstrip { display: grid; gap: 12px; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.cyc { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: 12.5px; }
+.cyc .shot { border-radius: 10px; border: 1px solid var(--border); }
+@media (max-width: 1000px) {
+  .film { grid-template-columns: repeat(var(--n), minmax(230px, 1fr)); overflow-x: auto; padding-bottom: 6px; }
+  .left { grid-template-columns: repeat(2, minmax(0, 1fr)); } .whole { grid-column: 1 / -1; }
+  .cycstrip { grid-template-columns: repeat(6, minmax(160px, 1fr)); overflow-x: auto; }
+}
+@media (max-width: 700px) { .now { grid-template-columns: minmax(0, 1fr); } }
