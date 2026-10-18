@@ -364,7 +364,7 @@ a.card.kpi { color: inherit; text-decoration: none; }
 .shot .age.old { background: var(--temp); color: #1b1b1a; }
 .shot.none { display: grid; place-items: center; text-align: center; font-size: 11.5px; color: var(--tx3); background: repeating-linear-gradient(135deg, var(--surface2) 0 10px, var(--surface) 10px 20px); }
 .chip.ok { background: transparent; border-color: transparent; color: var(--done); padding-left: 0; }
-.left { display: grid; gap: 10px; grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 1.6fr); }
+.left { display: grid; gap: 10px; grid-template-columns: repeat(5, minmax(0, 1fr)) minmax(0, 1.6fr); }
 .kpi.you { background: var(--accent-soft); border-color: transparent; } .kpi.you b { color: var(--accent); }
 .whole { display: flex; flex-direction: column; justify-content: center; gap: 8px; }
 .meter.big { height: 10px; }
@@ -381,3 +381,31 @@ a.card.kpi { color: inherit; text-decoration: none; }
 .shotcard { position: relative; }
 .shotcard.busy { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
 .shotcard .busy { align-self: flex-start; font: 700 10.5px var(--mono); padding: 2px 8px; border-radius: 5px; background: var(--accent); color: var(--on-accent); }
+
+/* cycles tab · percentages back · where assets are used */
+.kpi.gold b { color: var(--accent); }
+.shotcard .bar { height: 5px; }
+.cyc { background: none; border: 0; padding: 0; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.cyc:hover b { color: var(--accent); }
+.goalwords { white-space: pre-wrap; max-height: 9.5em; overflow: auto; }
+.tasklist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.tasklist li { display: flex; gap: 10px; align-items: flex-start; padding: 7px 0; border-top: 1px solid var(--border); font-size: 13px; }
+.tasklist li > i { font-style: normal; width: 14px; flex: none; color: var(--tx3); text-align: center; }
+.tasklist .t { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.tasklist .t b { font-weight: 600; overflow-wrap: anywhere; }
+.tasklist .t small { color: var(--tx3); font-size: 12px; overflow-wrap: anywhere; }
+.tasklist .done > i { color: var(--done); }
+.tasklist .doing { background: var(--accent-soft); border-radius: 8px; padding-inline: 6px; }
+.tasklist .doing > i, .tasklist .now { color: var(--accent); font-weight: 700; }
+.tasklist .blocked > i, .tasklist .blk { color: var(--bad); }
+.tasklist .dropped { opacity: .55; }
+.where { padding: 0; overflow: hidden; display: flex; flex-direction: column; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.where .in { padding: 8px 12px 10px; display: flex; flex-direction: column; gap: 2px; }
+.shot.dim { opacity: .55; }
+.used { display: block; font-size: 11.5px; color: var(--tx3); overflow-wrap: anywhere; }
+.used b { color: var(--tx2); font-weight: 600; }
+.used code { font: 11px var(--mono); margin-left: 4px; color: var(--accent); }
+.thumb .used { padding: 0 7px 6px; }
+@media (max-width: 1000px) { .left { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.where, .where .shot { flex: none; }
+.where .shot { width: 100%; }

@@ -1,17 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { at, type Act, type Inbox, type Ask, type Board, type Item, type Model, type Stage, type St, type Summary } from "@/lib/board";
+import { at, type Act, type Inbox, type Ask, type Board, type Item, type Model, type Stage, type St, type Summary, type Task, type Used } from "@/lib/board";
 import ThemePicker from "../../theme-picker";
 import NotNeeded, { type Run } from "./not-needed";
 import ReviewTab, { type Zoom } from "./review";
-import Items from "./items";
 import { SessionPill, SessionToasts } from "./session";
 
 // One game, drawn from the data the kit sends. The page holds one connection (/g/<game>/events) and is told the moment a newer board
 // arrives or the game's inbox changes — it redraws in place, the open tab and stage stay. Nothing asks on a clock.
 // "Refresh" reads both once more and reconnects — for when the connection dropped (a sleeping laptop, a phone on the tunnel).
-const TABS = ["overview", "review", "stages", "items", "assets"] as const;  // items: everything counted, in one list, with how it is counted
+const TABS = ["overview", "review", "stages", "cycles", "assets"] as const;
 type Tab = (typeof TABS)[number];
 const WORD: Record<St, string> = { done: "Done", temp: "Placeholder", none: "Not made", bad: "Problem" };
 const NONE: Inbox = { sent: [], taken: [], relayed: [], untaken: false };
@@ -25,7 +24,7 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
   const [link, setLink] = useState(0);
   const [tab, setTab] = useState<Tab>((TABS as readonly string[]).includes(firstTab) ? (firstTab as Tab) : "overview");
   const [stage, setStage] = useState<number | null>(null);
-  const [show, setShow] = useState<St | "all">("bad");
+  const [cyc, setCyc] = useState<string | null>(null);  // the cycle open in the Cycles tab — the newest when none was picked
   const [zoom, setZoom] = useState<{ src: string; label: string } | null>(null);
   const b = s.board as Board;
   const file = useCallback((p: string) => (p ? `/g/${s.game}/${p}` : ""), [s.game]);
@@ -108,9 +107,9 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
     return () => removeEventListener("keydown", off);
   }, []);
 
-  function go(t: Tab, st: number | null = null, only?: St) {
+  function go(t: Tab, st: number | null = null, cy?: string) {
     setTab(t);
-    if (only) setShow(only);
+    if (cy) setCyc(cy);
     if (st !== null) setStage(st);
     const u = new URL(location.href);
     u.searchParams.set("tab", t);
@@ -161,8 +160,8 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
 
         {tab === "overview" ? <Overview s={s} b={b} flow={flow} counts={counts} file={file} go={go} run={run} /> : null}
         {tab === "review" ? <ReviewTab game={s.game} box={box} items={b.review} file={file} zoom={z} run={run} /> : null}
-        {tab === "stages" ? <Stages b={b} sel={stage ?? flow[0]?.i ?? 0} pick={setStage} file={file} zoom={z} run={run} /> : null}
-        {tab === "items" ? <Items b={b} show={show} pick={setShow} /> : null}
+        {tab === "stages" ? <Stages b={b} sel={stage ?? flow[0]?.i ?? 0} pick={setStage} file={file} zoom={z} run={run} go={go} /> : null}
+        {tab === "cycles" ? <Cycles b={b} sel={cyc ?? b.cycles[b.cycles.length - 1]?.num ?? ""} pick={setCyc} file={file} zoom={z} go={go} /> : null}
         {tab === "assets" ? <Assets a={b.assets} file={file} zoom={z} /> : null}
        </div>
       </main>
@@ -236,11 +235,12 @@ function OpenChips({ st }: { st: Stage }) {
 }
 
 const STEPS = ["Goal", "Spec", "Design", "Plan", "Build", "Play"];
-const MARK: Record<string, [string, string]> = { x: ["done", "✓"], "!": ["blocked", "!"], " ": ["open", "○"] };
+const MARK: Record<string, [string, string]> = { x: ["done", "✓"], "!": ["blocked", "!"], " ": ["open", "○"], ">": ["doing", "▶"], "-": ["dropped", "–"] };
+const total = (t: { done: number; open: number; blocked: number; doing?: number }) => t.done + t.open + t.blocked + (t.doing ?? 0);
 
 function Overview({ s, b, flow, counts, file, go }: {
   s: Summary; b: Board; flow: Stage[]; counts: { review: number; problems: number };
-  file: (p: string) => string; go: (t: Tab, st?: number | null, only?: St) => void; run: Run | null;
+  file: (p: string) => string; go: (t: Tab, st?: number | null, cy?: string) => void; run: Run | null;
 }) {
   const now = b.cycles[b.cycles.length - 1];
   const rest = b.stages.find((x) => x.common);
@@ -265,7 +265,9 @@ function Overview({ s, b, flow, counts, file, go }: {
             {now.line && now.goal ? <p className="small muted clamp">{now.goal}</p> : null}
             {tasks.length ? (
               <>
-                <span className="lab">Tasks {tasks.filter((t) => t.mark === "x").length}/{tasks.length}</span>
+                <span className="lab">Tasks {tasks.filter((t) => t.mark === "x").length}/{tasks.length}
+                  {tasks.some((t) => t.mark === ">") ? <> · now: {tasks.filter((t) => t.mark === ">").map((t) => t.num).join(" · ")}</> : null}
+                  {" · "}<a className="more" href="?tab=cycles" onClick={(e) => { e.preventDefault(); go("cycles", null, now.num); }}>all tasks →</a></span>
                 <ul className="tasks">
                   {tasks.slice(0, 8).map((t) => {
                     const [cls, sign] = MARK[t.mark] ?? MARK[" "];
@@ -300,10 +302,11 @@ function Overview({ s, b, flow, counts, file, go }: {
                 </div>
               ) : <div className="shot none"><span>No screen yet<br />shot at the next Play</span></div>}
               <div className="in">
-                {busy.length ? <span className="busy">in cycle {now?.num} · {busy.map((t) => t.num).join(" · ")}</span> : null}
-                <span className="lab">{String(st.i + 1).padStart(2, "0")}{st.loop ? " · loop" : ""}</span>
+                {busy.length ? <span className="busy">in cycle {now?.num} · {busy.map((t) => (t.mark === ">" ? "▶ " : "") + t.num).join(" · ")}</span> : null}
+                <span className="lab">{String(st.i + 1).padStart(2, "0")}{st.loop ? " · loop" : ""}{st.complete !== null ? ` · ${st.complete}%` : ""}</span>
                 <h3>{st.name}</h3>
                 {st.about ? <div className="small muted">{st.about}</div> : null}
+                <div className="bar"><i style={{ width: `${st.complete ?? 0}%` }} /></div>
                 <OpenChips st={st} />
               </div>
             </button>
@@ -315,18 +318,13 @@ function Overview({ s, b, flow, counts, file, go }: {
       <section className="sec">
         <div className="sec-h"><h2>What is left</h2><span className="lab">counts of what is still open</span></div>
         <div className="left">
+          <div className="card kpi gold"><span className="lab">Complete</span><b>{s.complete}%</b><small>average of the stages</small></div>
           <a className={`card kpi${counts.review ? " you" : ""}`} href="?tab=review" onClick={(e) => { e.preventDefault(); go("review"); }}>
             <span className="lab">Waiting on you</span><b>{counts.review}</b>
           </a>
-          <a className={`card kpi${counts.problems ? " alert" : ""}`} href="?tab=items" onClick={(e) => { e.preventDefault(); go("items", null, "bad"); }}>
-            <span className="lab">Problems</span><b>{counts.problems}</b>
-          </a>
-          <a className="card kpi" href="?tab=items" onClick={(e) => { e.preventDefault(); go("items", null, "none"); }}>
-            <span className="lab">Not made</span><b>{s.counts.not_made}</b>
-          </a>
-          <a className="card kpi warn" href="?tab=items" onClick={(e) => { e.preventDefault(); go("items", null, "temp"); }}>
-            <span className="lab">Placeholders</span><b>{s.counts.placeholders}</b>
-          </a>
+          <div className={`card kpi${counts.problems ? " alert" : ""}`}><span className="lab">Problems</span><b>{counts.problems}</b></div>
+          <div className="card kpi"><span className="lab">Not made</span><b>{s.counts.not_made}</b></div>
+          <div className="card kpi warn"><span className="lab">Placeholders</span><b>{s.counts.placeholders}</b></div>
           <div className="card whole">
             <div className="meter big">
               {(["done", "temp", "none", "bad"] as St[]).map((k) => (all[k] ? <i key={k} className={`st-${k}`} style={{ flex: all[k] }} /> : null))}
@@ -346,11 +344,11 @@ function Overview({ s, b, flow, counts, file, go }: {
           <div className="sec-h"><h2>Cycles</h2><span className="lab">what each one looked like</span></div>
           <div className="cycstrip">
             {[...b.cycles].reverse().slice(0, 6).map((c) => (
-              <div key={c.num} className="cyc">
+              <button key={c.num} className="cyc" onClick={() => go("cycles", null, c.num)}>
                 {c.shot ? <div className="shot" style={{ backgroundImage: `url(${file(c.shot)})` }} /> : <div className="shot none"><span>no screen kept</span></div>}
                 <b>{c.num} · {c.name}</b>
-                <small className="muted">{c.stage} · tasks {c.tasks.done}/{c.tasks.done + c.tasks.open + c.tasks.blocked}</small>
-              </div>
+                <small className="muted">{c.stage} · tasks {c.tasks.done}/{total(c.tasks)}</small>
+              </button>
             ))}
           </div>
         </section>
@@ -373,7 +371,7 @@ function AskRow({ q, run }: { q: Ask; run: Run | null }) {
   );
 }
 
-function ItemRow({ i, file }: { i: Item; file: (p: string) => string }) {
+function ItemRow({ i, file, used }: { i: Item; file: (p: string) => string; used?: Used }) {
   return (
     <li>
       <i className={`dot st-${i.st}`} title={WORD[i.st]} />
@@ -381,6 +379,7 @@ function ItemRow({ i, file }: { i: Item; file: (p: string) => string }) {
       <div className="t">
         <span>{i.code ? <code>{i.code}</code> : null}<b>{i.title}</b></span>
         {i.sub || i.note || i.tags.length ? <small>{[i.sub, i.note, i.tags.join(" · ")].filter(Boolean).join(" · ")}</small> : null}
+        <UsedIn u={used} />
       </div>
     </li>
   );
@@ -430,7 +429,9 @@ function Lane({ label, items, file, zoom }: { label: string; items: Item[]; file
   );
 }
 
-function Stages({ b, sel, pick, file, zoom, run }: { b: Board; sel: number; pick: (i: number) => void; file: (p: string) => string; zoom: Zoom; run: Run | null }) {
+function Stages({ b, sel, pick, file, zoom, run, go }: {
+  b: Board; sel: number; pick: (i: number) => void; file: (p: string) => string; zoom: Zoom; run: Run | null; go: (t: Tab, st?: number | null, cy?: string) => void;
+}) {
   const st = b.stages.find((x) => x.i === sel) ?? b.stages[0];
   if (!st) return <div className="empty">No stages read yet.</div>;
   return (
@@ -463,13 +464,119 @@ function Stages({ b, sel, pick, file, zoom, run }: { b: Board; sel: number; pick
           <h3>Tasks that touched this stage</h3>
           {st.work.length ? st.work.map((w) => (
             <div key={w.cycle}>
-              <div className="lab" style={{ margin: "4px 0 6px" }}>Cycle {w.cycle} — {w.name} · {w.stage}</div>
+              <a className="lab more" href="?tab=cycles" style={{ display: "block", margin: "4px 0 6px" }} onClick={(e) => { e.preventDefault(); go("cycles", null, w.cycle); }}>Cycle {w.cycle} — {w.name} · {w.stage} →</a>
               {w.tasks.map((t) => <span key={t.num} className={`task${t.mark === "x" ? " x" : t.mark === "!" ? " blk" : ""}`} title={t.did}><b className="mono">{t.num}</b>{t.title}</span>)}
             </div>
           )) : <span className="small muted">None.</span>}
         </section>
       </div>
     </>
+  );
+}
+
+// A stage named in `cycle.py shot` — its name on the board, or a part of it (the kit matches the same way).
+function fits(said: string, name: string) {
+  const a = said.toLowerCase().split(/\s+/).join(" "), n = name.toLowerCase().split(/\s+/).join(" ");
+  return !!a && (a === n || n.includes(a) || a.includes(n));
+}
+
+function Cycles({ b, sel, pick, file, zoom, go }: {
+  b: Board; sel: string; pick: (c: string) => void; file: (p: string) => string; zoom: Zoom; go: (t: Tab, st?: number | null, cy?: string) => void;
+}) {
+  const c = b.cycles.find((x) => x.num === sel) ?? b.cycles[b.cycles.length - 1];
+  if (!c) return <div className="empty">No cycle yet.</div>;
+  const steps = b.steps ?? STEPS;
+  const at = steps.indexOf(c.stage);
+  const list = c.list ?? [];
+  const waves = [...new Set(list.map((t) => t.wave ?? 0))].sort((x, y) => x - y);
+  const worked = (c.stages ?? []).map((i) => b.stages.find((x) => x.i === i)).filter((x): x is Stage => !!x);
+  const shotOf = (st: Stage) => (c.shots ?? []).find((sh) => fits(sh.stage, st.name))?.img;
+  const loose = (c.shots ?? []).filter((sh) => !worked.some((st) => fits(sh.stage, st.name)));
+  return (
+    <>
+      <div className="filters">
+        {[...b.cycles].reverse().map((x) => (
+          <button key={x.num} className={x.num === c.num ? "on" : ""} onClick={() => pick(x.num)}>{x.num} {x.name}</button>
+        ))}
+      </div>
+      <section className="card sec">
+        <span className="lab">Cycle {c.num} · {c.stage}{c.start ? ` · started ${c.start}` : ""}</span>
+        <div className="steps">
+          {steps.map((k, i) => (
+            <span key={k} className={`step${k === c.stage ? " on" : c.skipped?.includes(k) ? " skip" : c.stage === "Closed" || (at >= 0 && i < at) ? " past" : ""}`}>{k}</span>
+          ))}
+        </div>
+        <h1>{c.line || c.name}</h1>
+        {c.goal ? <div className="small muted goalwords">{c.goal}</div> : null}
+        <div className="chips">
+          <span className="chip acc">Tasks {c.tasks.done}/{total(c.tasks)}</span>
+          {c.tasks.doing ? <span className="chip acc">now {c.tasks.doing}</span> : null}
+          {c.tasks.blocked ? <span className="chip bad">Blocked {c.tasks.blocked}</span> : null}
+          {c.decisions.all ? <span className="chip">Decisions {c.decisions.all - c.decisions.open}/{c.decisions.all}</span> : null}
+        </div>
+      </section>
+
+      <div className="split">
+        <section className="card sec">
+          <div className="sec-h"><h3>What it did</h3><span className="lab">{list.length} tasks</span></div>
+          {list.length ? waves.map((w) => (
+            <div key={w}>
+              {waves.length > 1 ? <div className="lab" style={{ margin: "6px 0 2px" }}>{w ? `Wave ${w}` : "No wave"}</div> : null}
+              <ul className="tasklist">
+                {list.filter((t) => (t.wave ?? 0) === w).map((t: Task) => {
+                  const [cls, sign] = MARK[t.mark] ?? MARK[" "];
+                  return (
+                    <li key={t.num} className={cls}>
+                      <i>{sign}</i>
+                      <div className="t"><b><span className="mono">{t.num}</span> {t.title}</b>
+                        {t.mark === ">" ? <small className="now">being worked on now</small> : null}
+                        {t.blocked ? <small className="blk">Blocked: {t.blocked}</small> : null}
+                        {t.did ? <small>{t.did}</small> : null}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )) : <span className="small muted">No tasks yet — the plan comes after the spec and the design.</span>}
+        </section>
+
+        <aside className="sec">
+          <div className="sec-h"><h3>Where in the game</h3><span className="lab">{worked.length} stages</span></div>
+          {worked.length ? worked.map((st) => {
+            const img = shotOf(st);
+            return (
+              <button key={st.i} className="card link where" onClick={() => go("stages", st.i)}>
+                {img ? <div className="shot" style={{ backgroundImage: `url(${file(img)})` }}><span className="age">shot in cycle {c.num}</span></div>
+                  : st.image ? <div className="shot dim" style={{ backgroundImage: `url(${file(st.image)})` }}><span className="age">no screen from this cycle</span></div> : null}
+                <div className="in">
+                  <span className="lab">{String(st.i + 1).padStart(2, "0")}</span>
+                  <b>{st.name}</b>
+                  <small className="muted">{st.work.find((w) => w.cycle === c.num)?.tasks.map((t) => t.num).join(" · ")}</small>
+                </div>
+              </button>
+            );
+          }) : <div className="card small muted">No stage read from its tasks.</div>}
+          {loose.length ? (
+            <div className="thumbs">
+              {loose.map((sh) => (
+                <div key={sh.img} className="thumb"><button className="im" style={{ backgroundImage: `url(${file(sh.img)})` }} onClick={() => zoom(file(sh.img), sh.stage)} aria-label={sh.stage} /><span className="nm">{sh.stage}</span></div>
+              ))}
+            </div>
+          ) : null}
+        </aside>
+      </div>
+    </>
+  );
+}
+
+function UsedIn({ u }: { u?: Used }) {
+  if (!u) return null;
+  return (
+    <span className="used">
+      {u.stage ? <>in <b>{u.stage}</b></> : "in no stage"}
+      {u.code.length ? <> · {u.code.map((c) => <code key={c}>{c}</code>)}</> : <> · not named in code</>}
+    </span>
   );
 }
 
@@ -485,6 +592,7 @@ function Assets({ a, file, zoom }: { a: Board["assets"]; file: (p: string) => st
               <div key={m.what} className="thumb" title={m.what}>
                 {m.img ? <button className="im" style={{ backgroundImage: `url(${file(m.img)})` }} onClick={() => zoom(file(m.img), m.name)} aria-label={m.name} /> : <div className="im">model</div>}
                 <span className="nm">{m.name}</span>
+                <UsedIn u={m.used} />
               </div>
             ))}
           </div>
@@ -492,7 +600,7 @@ function Assets({ a, file, zoom }: { a: Board["assets"]; file: (p: string) => st
       </section>
       <aside className="sec">
         <div className="sec-h"><h2>Sounds</h2><span className="lab">{a.sounds.length}</span></div>
-        <div className="card">{a.sounds.length ? <ul className="list">{a.sounds.map((x, n) => <ItemRow key={n} i={x} file={file} />)}</ul> : <span className="small muted">None.</span>}</div>
+        <div className="card">{a.sounds.length ? <ul className="list">{a.sounds.map((x, n) => <ItemRow key={n} i={x} file={file} used={x.used} />)}</ul> : <span className="small muted">None.</span>}</div>
       </aside>
     </div>
   );

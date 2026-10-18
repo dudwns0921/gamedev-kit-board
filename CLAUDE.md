@@ -47,9 +47,9 @@ the files are watched. Refresh (↻) reads both once more and reconnects.
 A batch no open session took (or one taken by a session that never read it) is shown as waiting for the next session — nothing more.
 
 **For you** cards (the kit's `cycle.py todo`): what only the user can do outside the chat, with its steps and the text to copy in one tap; one that waits for a file
-leaves when the kit's watcher sees the file and sends a newer board. A decision can carry sounds (mp3 · m4a · wav), heard on its card. The **Items** tab lists everything the board counts — problems, not made, placeholders, done — by stage, with where each state is read from and what closes it, under a table of how each state is counted; the Problems and Not made tiles open it. The games page says when a game's session is at a good place to `/clear`.
+leaves when the kit's watcher sees the file and sends a newer board. A decision can carry sounds (mp3 · m4a · wav), heard on its card. The **Cycles** tab opens any cycle: its stages, its goal, every task (done · being worked on now · blocked, with what was written under each) by wave, and the stages of play it worked in with the screens it shot. The Assets tab says where each asset is used — its stage, and the code files that name it. The games page says when a game's session is at a good place to `/clear`.
 The **Overview** is built around the cycle in hand: Now (its goal in one line, its stages, its tasks, what waits on the user), the stages of play as their newest screens
-(the kit's `cycle.py shot`, stamped with the cycle) with what is still open in each, counts of what is left (no percentage), and the cycles as pictures.
+(the kit's `cycle.py shot`, stamped with the cycle) with what is still open in each, how complete the game is (%) beside counts of what is left, and the cycles as pictures.
 
 Next, in order:
 1. Confirm in use that the desktop app wakes for a batch (the kit's monitor, or its after-turn hook).

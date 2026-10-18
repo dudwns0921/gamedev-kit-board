@@ -48,7 +48,13 @@ export type Review = (
   | { kind: "check"; key: string; ref: string; title: string; cycle: string; detail?: string }  // detail: a tuning hint an older document wrote after the question
 ) & { later?: string };  // put off to a later cycle by the session — waiting, not in hand
 
-export type Model = { name: string; img: string; tool: string; st: St; state: string; old: boolean; sample: boolean; reference: boolean; what: string; rejected: number };
+/** Where an asset is used: the stage of play it was placed in, and the code files that name it (an engine that points at files by id finds none). */
+export type Used = { stage: string; code: string[] };
+
+export type Model = { name: string; img: string; tool: string; st: St; state: string; old: boolean; sample: boolean; reference: boolean; what: string; rejected: number; used?: Used };
+
+/** A task of a cycle. mark: x done · ' ' open · '>' being worked on now · '!' blocked · '-' dropped. did · blocked: the lines written under it. */
+export type Task = { num: string; title: string; mark: string; did?: string; blocked?: string; wave?: number };
 
 export type Board = {
   lanes: { key: string; label: string }[];
@@ -57,12 +63,12 @@ export type Board = {
   /** The stages of a cycle, in order (Goal … Play) — a cycle's stage is one of them, or Closed. */
   steps?: string[];
   /** line: the goal in one line (`cycle.py line`) · shot: the first screen the cycle shot · skipped: the stages it chose not to run ·
-   *  list: the newest cycle's tasks (empty for the others). */
+   *  list: its tasks · stages: the stages of play it worked in · shots: the screens it shot, by stage. */
   cycles: { num: string; name: string; stage: string; start: string; goal: string; line?: string; shot?: string; skipped?: string[];
-    list?: { num: string; title: string; mark: string }[];
-    tasks: { done: number; open: number; blocked: number }; decisions: { open: number; all: number } }[];
+    list?: Task[]; stages?: number[]; shots?: { stage: string; img: string }[];
+    tasks: { done: number; open: number; blocked: number; doing?: number }; decisions: { open: number; all: number } }[];
   review: Review[];
-  assets: { style: string; world: string; learned: string[]; sound: string; models: Model[]; loose: Model[]; sounds: Item[] };
+  assets: { style: string; world: string; learned: string[]; sound: string; models: Model[]; loose: Model[]; sounds: (Item & { used?: Used })[] };
 };
 
 export type Summary = {
