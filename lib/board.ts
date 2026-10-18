@@ -12,7 +12,12 @@ export type Item = { st: St; title: string; sub: string; note: string; img: stri
   part?: string; what?: string; cycle?: string; file?: string; used_in?: string[] };
 
 /** One thing the player meets in a stage — an enemy, a weapon, the room — with how far it is. named: set in board.flow (else made from names). */
-export type Part = { name: string; about: string; named: boolean; complete: number | null };
+/** How far the function (rules and numbers in the code) and the assets (looks and sounds) are, apart: a % each (null when there are none),
+ *  and the assets still open by name. */
+export type Halves = { function: number | null; assets: number | null; functions: number; asset_count: number;
+  open_assets: { name: string; st: St; kind: string }[] };
+
+export type Part = { name: string; about: string; named: boolean; complete: number | null } & Partial<Halves>;
 
 export type Stage = {
   i: number;
@@ -26,6 +31,7 @@ export type Stage = {
   shot?: { cycle: string; behind: number } | null;
   lanes: Record<string, Item[]>;
   parts?: Part[];
+  halves?: Halves;
   open: Ask[];
   work: { cycle: string; name: string; stage: string; tasks: { num: string; title: string; mark: string; did: string }[] }[];
 };

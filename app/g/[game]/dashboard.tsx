@@ -460,16 +460,30 @@ function AssetLine({ i, file, zoom }: { i: Item; file: (p: string) => string; zo
   );
 }
 
-function Stages({ b, sel, pick, file, zoom, go }: {
+function Pct({ v, label, sub }: { v: number | null | undefined; label?: string; sub?: string }) {
+  if (v === null || v === undefined) return <span className="muted small">{label ? `${label} — none` : "—"}</span>;
+  return (
+    <div className="pctcell">
+      <div className="pctline"><b>{v}%</b>{label ? <span className="lab">{label}</span> : null}</div>
+      <div className="bar"><i style={{ width: `${v}%`, background: v === 100 ? "var(--done)" : undefined }} /></div>
+      {sub ? <small>{sub}</small> : null}
+    </div>
+  );
+}
+
+const openWord = (o: { st: St }[]) => {
+  const t = o.filter((x) => x.st === "temp").length, n = o.filter((x) => x.st === "none").length, b = o.filter((x) => x.st === "bad").length;
+  return [t ? `${t} placeholder` : "", n ? `${n} not made` : "", b ? `${b} problem` : ""].filter(Boolean).join(" · ");
+};
+
+function Stages({ b, sel, pick, file, go }: {
   b: Board; sel: number; pick: (i: number) => void; file: (p: string) => string; zoom: Zoom; run: Run | null; go: (t: Tab, st?: number | null, cy?: string) => void;
 }) {
   const st = b.stages.find((x) => x.i === sel) ?? b.stages[0];
   if (!st) return <div className="empty">No stages read yet.</div>;
-  const made = ["function", "art", "sound"].flatMap((k) => st.lanes[k] ?? []);
   const parts = st.parts ?? [];
-  const full = parts.filter((p) => p.complete === 100).length;
-  const left = tally(made);
-  const of = (part: string, lane: string) => (st.lanes[lane] ?? []).filter((i) => (i.part ?? "") === part);
+  const h = st.halves;
+  const checks = tally(st.lanes.verified ?? []);
   return (
     <>
       <div className="filters">
@@ -484,60 +498,40 @@ function Stages({ b, sel, pick, file, zoom, go }: {
           : <div className="shot none"><span>No screen yet<br />shot at the next Play</span></div>}
         <div className="in">
           <span className="lab">{st.common ? "In no stage — not counted in the %" : `Stage ${String(st.i + 1).padStart(2, "0")}${st.loop ? " · loop" : ""}`}</span>
-          <h1>{st.name}</h1>
+          <h1>{st.name} <span className="headpct">{st.complete ?? "—"}%</span></h1>
           {st.about ? <div className="muted">{st.about}</div> : null}
-          <div className="pctrow">
-            <b className="bigpct">{st.complete ?? "—"}%</b>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="bar big"><i style={{ width: `${st.complete ?? 0}%` }} /></div>
-              <small className="muted">{parts.length} parts · {full} complete{left.temp || left.none ? ` · left: ${[left.temp ? `${left.temp} placeholder` : "", left.none ? `${left.none} not made` : ""].filter(Boolean).join(" · ")}` : ""}</small>
-            </div>
+          <div className="two-pct">
+            <div className="card-in"><Pct v={h?.function} label="Function" sub={h ? `what the player can do here — ${h.functions} rules and numbers in the code` : ""} /></div>
+            <div className="card-in"><Pct v={h?.assets} label="Assets" sub={h ? (h.open_assets.length ? `looks and sounds — left: ${openWord(h.open_assets)}` : `looks and sounds — all ${h.asset_count} in`) : ""} /></div>
           </div>
-          <div className="lanes4">
-            {b.lanes.map((l) => {
-              const items = st.lanes[l.key] ?? [];
-              const c = tally(items);
-              return (
-                <div key={l.key} className="lane4">
-                  <span className="lab">{LANE_WORD[l.key] ?? l.label}</span>
-                  <b>{c.done}/{items.length}</b>
-                  {items.length ? <StBar items={items} /> : <div className="bar stbar" />}
-                  <small>{laneNote(items)}{l.key === "verified" && (c.bad || c.temp) ? <> — <a className="more" href="?tab=review" onClick={(e) => { e.preventDefault(); go("review"); }}>see in Review →</a></> : null}</small>
-                </div>
-              );
-            })}
-          </div>
+          {checks.bad || checks.temp ? (
+            <small className="muted">To check by playing: {[checks.bad ? `${checks.bad} problem` : "", checks.temp ? `${checks.temp} waiting` : ""].filter(Boolean).join(" · ")} — <a className="more" href="?tab=review" onClick={(e) => { e.preventDefault(); go("review"); }}>Review →</a></small>
+          ) : null}
         </div>
       </section>
 
-      <section className="card sec">
-        <div className="sec-h"><h2>What the player meets here</h2><span className="lab">each part — rules · looks · sound</span></div>
+      <section className="card flush">
+        <div className="sec-h pad"><h2>Parts</h2><span className="lab">what the player meets here — function and assets, each in %</span></div>
         {parts.length ? (
-          <div className="partwrap">
-            <table className="parts">
-              <thead><tr><th>Part</th><th>Rules · numbers</th><th>Looks</th><th>Sound</th><th>Progress</th></tr></thead>
+          <div className="tablewrap">
+            <table className="tbl parts2">
+              <thead><tr><th>Part</th><th>Function</th><th>Assets</th><th>Left to make</th></tr></thead>
               <tbody>
-                {parts.map((p) => {
-                  const rules = of(p.name, "function"), looks = of(p.name, "art"), sounds = of(p.name, "sound");
-                  const open = [...looks, ...sounds].filter((i) => i.st !== "done").map((i) => i.title);
-                  return (
-                    <tr key={p.name}>
-                      <td className="part"><b>{p.name}</b>{p.about ? <small>{p.about}</small> : null}</td>
-                      <td>{rules.length ? <div className="cell">
-                        {rules.slice(0, 5).map((i, n) => <div key={n} className="rline"><i className={`dot st-${i.st}`} /><span><code>{i.code.split(".").slice(-1)[0]}</code> {i.title}</span></div>)}
-                        {rules.length > 5 ? <small className="muted">+{rules.length - 5} more</small> : null}
-                      </div> : <span className="muted small">—</span>}</td>
-                      <td>{looks.length ? <div className="cell">{looks.slice(0, 4).map((i) => <AssetLine key={i.title} i={i} file={file} zoom={zoom} />)}{looks.length > 4 ? <small className="muted">+{looks.length - 4} more</small> : null}</div> : <span className="muted small">—</span>}</td>
-                      <td>{sounds.length ? <div className="cell">{sounds.slice(0, 4).map((i) => <AssetLine key={i.title} i={i} file={file} zoom={zoom} />)}{sounds.length > 4 ? <small className="muted">+{sounds.length - 4} more</small> : null}</div> : <span className="muted small">—</span>}</td>
-                      <td className="pct"><b>{p.complete ?? "—"}%</b><div className="bar"><i style={{ width: `${p.complete ?? 0}%` }} /></div>{open.length ? <small className="muted">left: {open.slice(0, 3).join(" · ")}{open.length > 3 ? ` +${open.length - 3}` : ""}</small> : null}</td>
-                    </tr>
-                  );
-                })}
+                {parts.map((p) => (
+                  <tr key={p.name} className={p.complete === 100 ? "" : "open"}>
+                    <td className="what"><b>{p.name}</b>{p.about ? <small>{p.about}</small> : null}</td>
+                    <td className="pc"><Pct v={p.function} /></td>
+                    <td className="pc"><Pct v={p.assets} /></td>
+                    <td>{p.open_assets?.length ? p.open_assets.map((o) => (
+                      <span key={o.name} className={`achip st-a-${o.st}`}>{o.kind === "sound" ? "♪" : "▣"} {o.name}<em> {STATE[o.st]}</em></span>
+                    )) : (p.asset_count || p.functions) ? <span className="chip ok">nothing left</span> : <span className="muted">—</span>}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
-        ) : <span className="muted small">Nothing read for this stage yet.</span>}
-        {parts.length && !parts.some((p) => p.named) ? <small className="muted">The parts are made from names. Name them once in <code>board.flow</code> (each stage&apos;s <code>parts</code>) and they read as the game does.</small> : null}
+        ) : <div className="pad small muted">Nothing read for this stage yet.</div>}
+        {parts.length && !parts.some((p) => p.named) ? <div className="pad small muted">The parts are made from names. Name them once in <code>board.flow</code> (each stage&apos;s <code>parts</code>) and they read as the game does.</div> : null}
       </section>
     </>
   );
