@@ -6,7 +6,13 @@
 export type St = "done" | "temp" | "none" | "bad";
 
 // src: where its state is read from — gdd · slot · file · cycle · playtest · note (absent on a board from an older kit)
-export type Item = { st: St; title: string; sub: string; note: string; img: string; audio: string; tags: string[]; code: string; src?: string };
+export type Item = { st: St; title: string; sub: string; note: string; img: string; audio: string; tags: string[]; code: string; src?: string;
+  /** part: what the player meets that it belongs to (board.flow's parts, or one made from its name) ·
+   *  for an asset — what: what it is (the cycle's description) · cycle: the cycle that first listed it · file · used_in: the code files that name it */
+  part?: string; what?: string; cycle?: string; file?: string; used_in?: string[] };
+
+/** One thing the player meets in a stage — an enemy, a weapon, the room — with how far it is. named: set in board.flow (else made from names). */
+export type Part = { name: string; about: string; named: boolean; complete: number | null };
 
 export type Stage = {
   i: number;
@@ -19,6 +25,7 @@ export type Stage = {
   /** image is the screen a cycle shot of this stage (the kit's `cycle.py shot`): which cycle, and how many cycles behind the newest one. null: no screen shot yet */
   shot?: { cycle: string; behind: number } | null;
   lanes: Record<string, Item[]>;
+  parts?: Part[];
   open: Ask[];
   work: { cycle: string; name: string; stage: string; tasks: { num: string; title: string; mark: string; did: string }[] }[];
 };
@@ -54,7 +61,10 @@ export type Used = { stage: string; code: string[] };
 export type Model = { name: string; img: string; tool: string; st: St; state: string; old: boolean; sample: boolean; reference: boolean; what: string; rejected: number; used?: Used };
 
 /** A task of a cycle. mark: x done · ' ' open · '>' being worked on now · '!' blocked · '-' dropped. did · blocked: the lines written under it. */
-export type Task = { num: string; title: string; mark: string; did?: string; blocked?: string; wave?: number };
+export type Task = { num: string; title: string; mark: string; did?: string; blocked?: string; wave?: number; stages?: number[]; assets?: string[] };
+
+/** An asset a cycle listed: what it is, how far it is, the stage it is in, and the tasks that name it. */
+export type CycleAsset = { name: string; kind: string; what: string; st: St; stage: number | null; img: string; audio: string; tasks: string[] };
 
 export type Board = {
   lanes: { key: string; label: string }[];
@@ -65,7 +75,7 @@ export type Board = {
   /** line: the goal in one line (`cycle.py line`) · shot: the first screen the cycle shot · skipped: the stages it chose not to run ·
    *  list: its tasks · stages: the stages of play it worked in · shots: the screens it shot, by stage. */
   cycles: { num: string; name: string; stage: string; start: string; goal: string; line?: string; shot?: string; skipped?: string[];
-    list?: Task[]; stages?: number[]; shots?: { stage: string; img: string }[];
+    list?: Task[]; stages?: number[]; shots?: { stage: string; img: string }[]; assets?: CycleAsset[];
     tasks: { done: number; open: number; blocked: number; doing?: number }; decisions: { open: number; all: number } }[];
   review: Review[];
   assets: { style: string; world: string; learned: string[]; sound: string; models: Model[]; loose: Model[]; sounds: (Item & { used?: Used })[] };

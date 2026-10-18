@@ -162,7 +162,7 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
         {tab === "review" ? <ReviewTab game={s.game} box={box} items={b.review} file={file} zoom={z} run={run} /> : null}
         {tab === "stages" ? <Stages b={b} sel={stage ?? flow[0]?.i ?? 0} pick={setStage} file={file} zoom={z} run={run} go={go} /> : null}
         {tab === "cycles" ? <Cycles b={b} sel={cyc ?? b.cycles[b.cycles.length - 1]?.num ?? ""} pick={setCyc} file={file} zoom={z} go={go} /> : null}
-        {tab === "assets" ? <Assets a={b.assets} file={file} zoom={z} /> : null}
+        {tab === "assets" ? <Assets b={b} file={file} zoom={z} go={go} /> : null}
        </div>
       </main>
       </div>
@@ -429,11 +429,47 @@ function Lane({ label, items, file, zoom }: { label: string; items: Item[]; file
   );
 }
 
-function Stages({ b, sel, pick, file, zoom, run, go }: {
+const LANE_WORD: Record<string, string> = { function: "Rules · numbers", art: "Looks", sound: "Sound", verified: "Checked by playing" };
+
+function laneNote(items: Item[]) {
+  const c = tally(items);
+  return [c.temp ? `${c.temp} placeholder` : "", c.none ? `${c.none} not made` : "", c.bad ? `${c.bad} problem` : ""].filter(Boolean).join(" · ") || (items.length ? "all done" : "none");
+}
+
+function StBar({ items }: { items: Item[] }) {
+  const c = tally(items);
+  return (
+    <div className="bar stbar">
+      {(["done", "temp", "none", "bad"] as St[]).map((k) => (c[k] ? <i key={k} className={`st-${k}`} style={{ flex: c[k] }} /> : null))}
+    </div>
+  );
+}
+
+const STATE: Record<St, string> = { done: "done", temp: "placeholder", none: "not made", bad: "problem" };
+
+// One asset as a line: a picture or a play button, its name, its state when not done, what it is.
+function AssetLine({ i, file, zoom }: { i: Item; file: (p: string) => string; zoom: Zoom }) {
+  return (
+    <div className={`aline st-line-${i.st}`}>
+      {i.audio ? <Play src={file(i.audio)} /> : i.img ? <button className="athumb" style={{ backgroundImage: `url(${file(i.img)})` }} onClick={() => zoom(file(i.img), i.title)} aria-label={i.title} /> : <span className="athumb none" />}
+      <div className="t">
+        <span><b>{i.title}</b>{i.st !== "done" ? <span className={`chip ${i.st === "temp" ? "warn" : i.st === "bad" ? "bad" : "none"}`}>{STATE[i.st]}</span> : <i className="dot st-done" />}</span>
+        {i.what ? <small className="what" title={i.what}>{i.what}</small> : null}
+      </div>
+    </div>
+  );
+}
+
+function Stages({ b, sel, pick, file, zoom, go }: {
   b: Board; sel: number; pick: (i: number) => void; file: (p: string) => string; zoom: Zoom; run: Run | null; go: (t: Tab, st?: number | null, cy?: string) => void;
 }) {
   const st = b.stages.find((x) => x.i === sel) ?? b.stages[0];
   if (!st) return <div className="empty">No stages read yet.</div>;
+  const made = ["function", "art", "sound"].flatMap((k) => st.lanes[k] ?? []);
+  const parts = st.parts ?? [];
+  const full = parts.filter((p) => p.complete === 100).length;
+  const left = tally(made);
+  const of = (part: string, lane: string) => (st.lanes[lane] ?? []).filter((i) => (i.part ?? "") === part);
   return (
     <>
       <div className="filters">
@@ -443,33 +479,66 @@ function Stages({ b, sel, pick, file, zoom, run, go }: {
           </button>
         ))}
       </div>
-      <div className="card" style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
-        <Ring p={st.complete} big />
-        <div style={{ minWidth: 0, flex: 1 }}>
+      <section className="card stagehead">
+        {st.image ? <div className="shot" style={{ backgroundImage: `url(${file(st.image)})` }}>{st.shot ? <span className="age">cycle {st.shot.cycle}</span> : null}</div>
+          : <div className="shot none"><span>No screen yet<br />shot at the next Play</span></div>}
+        <div className="in">
           <span className="lab">{st.common ? "In no stage — not counted in the %" : `Stage ${String(st.i + 1).padStart(2, "0")}${st.loop ? " · loop" : ""}`}</span>
           <h1>{st.name}</h1>
           {st.about ? <div className="muted">{st.about}</div> : null}
-        </div>
-        <Legend />
-      </div>
-      <div className="cols">{b.lanes.map((l) => <Lane key={l.key} label={l.label} items={st.lanes[l.key] ?? []} file={file} zoom={zoom} />)}</div>
-      <div className="cols">
-        <section className="card sec">
-          <div className="sec-h"><h3>Undecided</h3><span className="lab" style={{ marginLeft: "auto" }}>{st.open.length}</span></div>
-          {st.open.length ? (
-            <ul className="list">{st.open.map((q, n) => <AskRow key={n} q={q} run={run} />)}</ul>
-          ) : <span className="small muted">None.</span>}
-        </section>
-        <section className="card sec">
-          <h3>Tasks that touched this stage</h3>
-          {st.work.length ? st.work.map((w) => (
-            <div key={w.cycle}>
-              <a className="lab more" href="?tab=cycles" style={{ display: "block", margin: "4px 0 6px" }} onClick={(e) => { e.preventDefault(); go("cycles", null, w.cycle); }}>Cycle {w.cycle} — {w.name} · {w.stage} →</a>
-              {w.tasks.map((t) => <span key={t.num} className={`task${t.mark === "x" ? " x" : t.mark === "!" ? " blk" : ""}`} title={t.did}><b className="mono">{t.num}</b>{t.title}</span>)}
+          <div className="pctrow">
+            <b className="bigpct">{st.complete ?? "—"}%</b>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="bar big"><i style={{ width: `${st.complete ?? 0}%` }} /></div>
+              <small className="muted">{parts.length} parts · {full} complete{left.temp || left.none ? ` · left: ${[left.temp ? `${left.temp} placeholder` : "", left.none ? `${left.none} not made` : ""].filter(Boolean).join(" · ")}` : ""}</small>
             </div>
-          )) : <span className="small muted">None.</span>}
-        </section>
-      </div>
+          </div>
+          <div className="lanes4">
+            {b.lanes.map((l) => {
+              const items = st.lanes[l.key] ?? [];
+              const c = tally(items);
+              return (
+                <div key={l.key} className="lane4">
+                  <span className="lab">{LANE_WORD[l.key] ?? l.label}</span>
+                  <b>{c.done}/{items.length}</b>
+                  {items.length ? <StBar items={items} /> : <div className="bar stbar" />}
+                  <small>{laneNote(items)}{l.key === "verified" && (c.bad || c.temp) ? <> — <a className="more" href="?tab=review" onClick={(e) => { e.preventDefault(); go("review"); }}>see in Review →</a></> : null}</small>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section className="card sec">
+        <div className="sec-h"><h2>What the player meets here</h2><span className="lab">each part — rules · looks · sound</span></div>
+        {parts.length ? (
+          <div className="partwrap">
+            <table className="parts">
+              <thead><tr><th>Part</th><th>Rules · numbers</th><th>Looks</th><th>Sound</th><th>Progress</th></tr></thead>
+              <tbody>
+                {parts.map((p) => {
+                  const rules = of(p.name, "function"), looks = of(p.name, "art"), sounds = of(p.name, "sound");
+                  const open = [...looks, ...sounds].filter((i) => i.st !== "done").map((i) => i.title);
+                  return (
+                    <tr key={p.name}>
+                      <td className="part"><b>{p.name}</b>{p.about ? <small>{p.about}</small> : null}</td>
+                      <td>{rules.length ? <div className="cell">
+                        {rules.slice(0, 5).map((i, n) => <div key={n} className="rline"><i className={`dot st-${i.st}`} /><span><code>{i.code.split(".").slice(-1)[0]}</code> {i.title}</span></div>)}
+                        {rules.length > 5 ? <small className="muted">+{rules.length - 5} more</small> : null}
+                      </div> : <span className="muted small">—</span>}</td>
+                      <td>{looks.length ? <div className="cell">{looks.slice(0, 4).map((i) => <AssetLine key={i.title} i={i} file={file} zoom={zoom} />)}{looks.length > 4 ? <small className="muted">+{looks.length - 4} more</small> : null}</div> : <span className="muted small">—</span>}</td>
+                      <td>{sounds.length ? <div className="cell">{sounds.slice(0, 4).map((i) => <AssetLine key={i.title} i={i} file={file} zoom={zoom} />)}{sounds.length > 4 ? <small className="muted">+{sounds.length - 4} more</small> : null}</div> : <span className="muted small">—</span>}</td>
+                      <td className="pct"><b>{p.complete ?? "—"}%</b><div className="bar"><i style={{ width: `${p.complete ?? 0}%` }} /></div>{open.length ? <small className="muted">left: {open.slice(0, 3).join(" · ")}{open.length > 3 ? ` +${open.length - 3}` : ""}</small> : null}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : <span className="muted small">Nothing read for this stage yet.</span>}
+        {parts.length && !parts.some((p) => p.named) ? <small className="muted">The parts are made from names. Name them once in <code>board.flow</code> (each stage&apos;s <code>parts</code>) and they read as the game does.</small> : null}
+      </section>
     </>
   );
 }
@@ -480,18 +549,46 @@ function fits(said: string, name: string) {
   return !!a && (a === n || n.includes(a) || a.includes(n));
 }
 
+// The stage(s) a row went into: one as its screen and name, several as small screens.
+function StageCell({ ids, b, file, go }: { ids: number[]; b: Board; file: (p: string) => string; go: (t: Tab, st?: number | null, cy?: string) => void }) {
+  const where = ids.map((i) => b.stages.find((x) => x.i === i)).filter((x): x is Stage => !!x && !x.common);
+  if (!where.length) return <span className="muted">—</span>;
+  if (where.length === 1) {
+    const st = where[0];
+    return (
+      <button className="mini" onClick={() => go("stages", st.i)}>
+        {st.image ? <span className="minishot" style={{ backgroundImage: `url(${file(st.image)})` }} /> : null}
+        <small>{String(st.i + 1).padStart(2, "0")} {st.name}</small>
+      </button>
+    );
+  }
+  return (
+    <span className="mini">
+      {where.map((st) => <button key={st.i} className="minishot sm" title={st.name} style={st.image ? { backgroundImage: `url(${file(st.image)})` } : undefined} onClick={() => go("stages", st.i)} />)}
+      <small className="muted">{where.length} stages</small>
+    </span>
+  );
+}
+
 function Cycles({ b, sel, pick, file, zoom, go }: {
   b: Board; sel: string; pick: (c: string) => void; file: (p: string) => string; zoom: Zoom; go: (t: Tab, st?: number | null, cy?: string) => void;
 }) {
+  const [view, setView] = useState<"tasks" | "assets">("tasks");
+  const [onlyAssets, setOnlyAssets] = useState(false);
   const c = b.cycles.find((x) => x.num === sel) ?? b.cycles[b.cycles.length - 1];
   if (!c) return <div className="empty">No cycle yet.</div>;
   const steps = b.steps ?? STEPS;
   const at = steps.indexOf(c.stage);
   const list = c.list ?? [];
   const waves = [...new Set(list.map((t) => t.wave ?? 0))].sort((x, y) => x - y);
-  const worked = (c.stages ?? []).map((i) => b.stages.find((x) => x.i === i)).filter((x): x is Stage => !!x);
-  const shotOf = (st: Stage) => (c.shots ?? []).find((sh) => fits(sh.stage, st.name))?.img;
-  const loose = (c.shots ?? []).filter((sh) => !worked.some((st) => fits(sh.stage, st.name)));
+  const stageOf = (i: number) => b.stages.find((x) => x.i === i);
+  const assets = c.assets ?? [];
+  const byName = new Map(assets.map((a) => [a.name, a]));
+  // the screens this cycle changed: the stages it worked in, each with the screen it shot there (or the stage's own), and the tasks in it
+  const screens = (c.stages ?? []).map(stageOf).filter((x): x is Stage => !!x && !x.common).map((st) => ({
+    st, img: (c.shots ?? []).find((sh) => fits(sh.stage, st.name))?.img ?? "", tasks: list.filter((t) => t.stages?.includes(st.i)),
+  }));
+  const madeDone = assets.filter((a) => a.st === "done").length;
   return (
     <>
       <div className="filters">
@@ -513,59 +610,85 @@ function Cycles({ b, sel, pick, file, zoom, go }: {
           {c.tasks.doing ? <span className="chip acc">now {c.tasks.doing}</span> : null}
           {c.tasks.blocked ? <span className="chip bad">Blocked {c.tasks.blocked}</span> : null}
           {c.decisions.all ? <span className="chip">Decisions {c.decisions.all - c.decisions.open}/{c.decisions.all}</span> : null}
+          {assets.length ? <span className={`chip ${madeDone === assets.length ? "ok" : "warn"}`}>Assets {madeDone}/{assets.length}</span> : null}
         </div>
       </section>
 
-      <div className="split">
+      {screens.length ? (
         <section className="card sec">
-          <div className="sec-h"><h3>What it did</h3><span className="lab">{list.length} tasks</span></div>
-          {list.length ? waves.map((w) => (
-            <div key={w}>
-              {waves.length > 1 ? <div className="lab" style={{ margin: "6px 0 2px" }}>{w ? `Wave ${w}` : "No wave"}</div> : null}
-              <ul className="tasklist">
-                {list.filter((t) => (t.wave ?? 0) === w).map((t: Task) => {
-                  const [cls, sign] = MARK[t.mark] ?? MARK[" "];
-                  return (
-                    <li key={t.num} className={cls}>
-                      <i>{sign}</i>
-                      <div className="t"><b><span className="mono">{t.num}</span> {t.title}</b>
-                        {t.mark === ">" ? <small className="now">being worked on now</small> : null}
-                        {t.blocked ? <small className="blk">Blocked: {t.blocked}</small> : null}
-                        {t.did ? <small>{t.did}</small> : null}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )) : <span className="small muted">No tasks yet — the plan comes after the spec and the design.</span>}
+          <div className="sec-h"><h2>The screens this cycle changed</h2><span className="lab">each with the tasks that went into it</span></div>
+          <div className="screens">
+            {screens.map(({ st, img, tasks }) => (
+              <div key={st.i} className="scr">
+                <button className={`shot${img ? "" : st.image ? " dim" : " none"}`} style={img || st.image ? { backgroundImage: `url(${file(img || st.image)})` } : undefined} onClick={() => go("stages", st.i)}>
+                  <span className="age">{String(st.i + 1).padStart(2, "0")} {st.name}{img ? "" : " · no screen from this cycle"}</span>
+                </button>
+                <div className="chips">{tasks.map((t) => <span key={t.num} className={`chip${t.mark === ">" ? " acc" : ""}`} title={t.title}>{t.mark === ">" ? "▶ " : ""}{t.num}</span>)}</div>
+              </div>
+            ))}
+          </div>
         </section>
+      ) : null}
 
-        <aside className="sec">
-          <div className="sec-h"><h3>Where in the game</h3><span className="lab">{worked.length} stages</span></div>
-          {worked.length ? worked.map((st) => {
-            const img = shotOf(st);
-            return (
-              <button key={st.i} className="card link where" onClick={() => go("stages", st.i)}>
-                {img ? <div className="shot" style={{ backgroundImage: `url(${file(img)})` }}><span className="age">shot in cycle {c.num}</span></div>
-                  : st.image ? <div className="shot dim" style={{ backgroundImage: `url(${file(st.image)})` }}><span className="age">no screen from this cycle</span></div> : null}
-                <div className="in">
-                  <span className="lab">{String(st.i + 1).padStart(2, "0")}</span>
-                  <b>{st.name}</b>
-                  <small className="muted">{st.work.find((w) => w.cycle === c.num)?.tasks.map((t) => t.num).join(" · ")}</small>
-                </div>
-              </button>
-            );
-          }) : <div className="card small muted">No stage read from its tasks.</div>}
-          {loose.length ? (
-            <div className="thumbs">
-              {loose.map((sh) => (
-                <div key={sh.img} className="thumb"><button className="im" style={{ backgroundImage: `url(${file(sh.img)})` }} onClick={() => zoom(file(sh.img), sh.stage)} aria-label={sh.stage} /><span className="nm">{sh.stage}</span></div>
-              ))}
+      <section className="card sec flush">
+        <div className="sec-h pad">
+          <div className="seg">
+            <button className={view === "tasks" ? "on" : ""} onClick={() => setView("tasks")}>By task {list.length}</button>
+            <button className={view === "assets" ? "on" : ""} onClick={() => setView("assets")}>By asset {assets.length}</button>
+          </div>
+          {view === "tasks" ? <label className="tog"><input type="checkbox" checked={onlyAssets} onChange={(e) => setOnlyAssets(e.target.checked)} /> only tasks that added assets</label> : null}
+        </div>
+        {view === "tasks" ? (
+          list.length ? (
+            <div className="tablewrap">
+              <table className="tbl">
+                <thead><tr><th>State</th><th>Task</th><th>Screen</th><th>Assets it added</th></tr></thead>
+                <tbody>
+                  {waves.map((w) => {
+                    const rows = list.filter((t) => (t.wave ?? 0) === w && (!onlyAssets || (t.assets ?? []).some((n) => byName.has(n))));
+                    if (!rows.length) return null;
+                    return [
+                      waves.length > 1 ? <tr key={`w${w}`} className="group"><td colSpan={4}>{w ? `Wave ${w}` : "No wave"}{rows.some((t) => t.mark === ">") ? " — now" : ""}</td></tr> : null,
+                      ...rows.map((t: Task) => {
+                        const [cls, sign] = MARK[t.mark] ?? MARK[" "];
+                        const added = (t.assets ?? []).filter((n) => byName.has(n));
+                        return (
+                          <tr key={t.num} className={`${cls}${added.length ? " has" : ""}`}>
+                            <td className="state"><span className={`sign ${cls}`}>{sign}</span> <b className="mono">{t.num}</b></td>
+                            <td className="what">{t.title}
+                              {t.mark === ">" ? <small className="now">being worked on now</small> : null}
+                              {t.blocked ? <small className="blk">Blocked: {t.blocked}</small> : null}
+                            </td>
+                            <td><StageCell ids={t.stages ?? []} b={b} file={file} go={go} /></td>
+                            <td>{added.length ? added.map((n) => { const x = byName.get(n)!; return <span key={n} className={`achip st-a-${x.st}`}>{x.audio ? "♪" : "▣"} {n}{x.st !== "done" ? <em> {STATE[x.st]}</em> : null}</span>; }) : <span className="muted">—</span>}</td>
+                          </tr>
+                        );
+                      }),
+                    ];
+                  })}
+                </tbody>
+              </table>
             </div>
-          ) : null}
-        </aside>
-      </div>
+          ) : <div className="pad small muted">No tasks yet — the plan comes after the spec and the design.</div>
+        ) : assets.length ? (
+          <div className="tablewrap">
+            <table className="tbl">
+              <thead><tr><th></th><th>Asset</th><th>Screen</th><th>Tasks</th><th>State</th></tr></thead>
+              <tbody>
+                {assets.map((a) => (
+                  <tr key={a.name} className={a.st === "done" ? "" : "open"}>
+                    <td className="icon">{a.audio ? <Play src={file(a.audio)} /> : a.img ? <button className="athumb" style={{ backgroundImage: `url(${file(a.img)})` }} onClick={() => zoom(file(a.img), a.name)} aria-label={a.name} /> : <span className="athumb none">{a.kind.toLowerCase().includes("model") ? "3D" : ""}</span>}</td>
+                    <td className="what"><b>{a.name}</b>{a.what ? <small className="what" title={a.what}>{a.what}</small> : null}</td>
+                    <td><StageCell ids={a.stage !== null ? [a.stage] : []} b={b} file={file} go={go} /></td>
+                    <td>{a.tasks.length ? a.tasks.map((n) => <span key={n} className="tchip">{n}</span>) : <span className="muted">—</span>}</td>
+                    <td><span className={`chip ${a.st === "done" ? "ok" : a.st === "temp" ? "warn" : "none"}`}>{STATE[a.st]}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : <div className="pad small muted">This cycle listed no assets.</div>}
+      </section>
     </>
   );
 }
@@ -580,28 +703,64 @@ function UsedIn({ u }: { u?: Used }) {
   );
 }
 
-function Assets({ a, file, zoom }: { a: Board["assets"]; file: (p: string) => string; zoom: Zoom }) {
-  // Every picture, model and sound in the game's asset folders, side by side — whoever made it. The kit makes none.
+function Assets({ b, file, zoom, go }: { b: Board; file: (p: string) => string; zoom: Zoom; go: (t: Tab, st?: number | null, cy?: string) => void }) {
+  // Every asset, by the stage of play it is in (in the order the player meets them): what it is, how far, which part, which cycle listed it.
+  const [state, setState] = useState<St | "all">("all");
+  const [kind, setKind] = useState<"all" | "art" | "sound">("all");
+  const all = b.stages.flatMap((st) => (["art", "sound"] as const).flatMap((k) => (st.lanes[k] ?? []).map((i) => ({ st, k, i }))));
+  const seen = new Set(all.map((x) => x.i.title));
+  const pictures = b.assets.models.filter((m) => m.img && !seen.has(m.name.split(".")[0]));
+  const count = (s: St) => all.filter((x) => x.i.st === s && (kind === "all" || x.k === kind)).length;
+  const shown = (x: { k: string; i: Item }) => (state === "all" || x.i.st === state) && (kind === "all" || x.k === kind);
   return (
-    <div className="split">
-      <section className="sec">
-        <div className="sec-h"><h2>Models · images</h2><span className="lab">{a.models.length}</span></div>
-        {a.models.length ? (
-          <div className="thumbs">
-            {a.models.map((m) => (
-              <div key={m.what} className="thumb" title={m.what}>
-                {m.img ? <button className="im" style={{ backgroundImage: `url(${file(m.img)})` }} onClick={() => zoom(file(m.img), m.name)} aria-label={m.name} /> : <div className="im">model</div>}
-                <span className="nm">{m.name}</span>
-                <UsedIn u={m.used} />
-              </div>
-            ))}
-          </div>
-        ) : <div className="empty">No pictures or models in the asset folders yet.</div>}
+    <>
+      <div className="filters">
+        <button className={state === "all" ? "on" : ""} onClick={() => setState("all")}>All {all.filter((x) => kind === "all" || x.k === kind).length}</button>
+        {(["none", "temp", "done"] as St[]).map((s) => <button key={s} className={state === s ? "on" : ""} onClick={() => setState(s)}>{STATE[s][0].toUpperCase() + STATE[s].slice(1)} {count(s)}</button>)}
+        <span style={{ width: 12 }} />
+        {([["all", "Every kind"], ["art", "Models · pictures"], ["sound", "Sounds"]] as const).map(([k, w]) => <button key={k} className={kind === k ? "on" : ""} onClick={() => setKind(k)}>{w}</button>)}
+      </div>
+      <section className="card flush">
+        <div className="tablewrap">
+          <table className="tbl">
+            <thead><tr><th></th><th>Asset</th><th>Part</th><th>Cycle</th><th>State</th><th>In code</th></tr></thead>
+            <tbody>
+              {b.stages.map((st) => {
+                const here = all.filter((x) => x.st.i === st.i && shown(x));
+                if (!here.length) return null;
+                const looks = st.lanes.art ?? [], sounds = st.lanes.sound ?? [];
+                return [
+                  <tr key={`s${st.i}`} className="group stagegroup">
+                    <td colSpan={6}>
+                      <button className="mini" onClick={() => go("stages", st.i)}>
+                        {st.image ? <span className="minishot" style={{ backgroundImage: `url(${file(st.image)})` }} /> : null}
+                        <b>{st.common ? "In no stage yet" : `${String(st.i + 1).padStart(2, "0")} ${st.name}`}</b>
+                      </button>
+                      <span className="muted small">Looks {tally(looks).done}/{looks.length} · Sound {tally(sounds).done}/{sounds.length}</span>
+                    </td>
+                  </tr>,
+                  ...here.map(({ i }) => (
+                    <tr key={`${st.i}-${i.title}`} className={i.st === "done" ? "" : "open"}>
+                      <td className="icon">{i.audio ? <Play src={file(i.audio)} /> : i.img ? <button className="athumb" style={{ backgroundImage: `url(${file(i.img)})` }} onClick={() => zoom(file(i.img), i.title)} aria-label={i.title} /> : <span className="athumb none">{i.sub.toLowerCase().includes("model") ? "3D" : ""}</span>}</td>
+                      <td className="what"><b>{i.title}</b>{i.what ? <small className="what" title={i.what}>{i.what}</small> : i.sub ? <small className="what">{i.sub}</small> : null}</td>
+                      <td>{i.part ? <span className="chip">{i.part}</span> : <span className="muted">—</span>}</td>
+                      <td>{i.cycle ? <span className="tchip">{i.cycle}</span> : <span className="muted">—</span>}</td>
+                      <td><span className={`chip ${i.st === "done" ? "ok" : i.st === "temp" ? "warn" : i.st === "bad" ? "bad" : "none"}`}>{STATE[i.st]}</span></td>
+                      <td>{i.used_in?.length ? <details className="code"><summary>{i.used_in.length} file{i.used_in.length > 1 ? "s" : ""}</summary>{i.used_in.map((c) => <code key={c}>{c}</code>)}</details> : <span className="muted">—</span>}</td>
+                    </tr>
+                  )),
+                ];
+              })}
+            </tbody>
+          </table>
+        </div>
       </section>
-      <aside className="sec">
-        <div className="sec-h"><h2>Sounds</h2><span className="lab">{a.sounds.length}</span></div>
-        <div className="card">{a.sounds.length ? <ul className="list">{a.sounds.map((x, n) => <ItemRow key={n} i={x} file={file} used={x.used} />)}</ul> : <span className="small muted">None.</span>}</div>
-      </aside>
-    </div>
+      {pictures.length && (state === "all" || state === "done") && kind !== "sound" ? (
+        <section className="card sec">
+          <div className="sec-h"><h3>Other pictures</h3><span className="lab">in the asset folders, listed by no cycle</span></div>
+          <div className="thumbs">{pictures.map((m) => <div key={m.what} className="thumb"><button className="im" style={{ backgroundImage: `url(${file(m.img)})` }} onClick={() => zoom(file(m.img), m.name)} aria-label={m.name} /><span className="nm">{m.name}</span></div>)}</div>
+        </section>
+      ) : null}
+    </>
   );
 }
