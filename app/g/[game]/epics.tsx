@@ -220,45 +220,21 @@ export function Backlog({ b }: { b: Board }) {
   );
 }
 
-// What the panel can show — each a section the viewer turns on or off
-const PARTS = [
-  { id: "screen", label: "Epic screen", on: true },
-  { id: "status", label: "Status · cycle · wave", on: true },
-  { id: "outcome", label: "Done · blocked", on: true },
-  { id: "check", label: "Check", on: true },
-  { id: "decisions", label: "Decisions", on: true },
-  { id: "assets", label: "Assets", on: true },
-  { id: "bug", label: "Problem · cause", on: true },
-  { id: "spec", label: "Spec · design lines", on: false },
-  { id: "gdd", label: "GDD ids", on: false },
-  { id: "where", label: "Where (code)", on: false },
-  { id: "donttouch", label: "Do not touch", on: false },
-  { id: "risk", label: "Risk", on: false },
-  { id: "skills", label: "Skills", on: false },
-] as const;
-type Parts = Record<string, boolean>;
-const FIRST: Parts = Object.fromEntries(PARTS.map((p) => [p.id, p.on]));
-const KEPT = "kit-task-parts";
-
-export function TaskPanel({ b, k, file, close }: { b: Board; k: string; file: (p: string) => string; close: () => void }) {
-  const [parts, setParts] = useState<Parts>(FIRST);
-  useEffect(() => { try { const v = localStorage.getItem(KEPT); if (v) setParts({ ...FIRST, ...(JSON.parse(v) as Parts) }); } catch { /* a private window */ } }, []);
+// A task, for the user: what it is, how the game will change, what changed (or why it is stuck), and the GDD ids it touches — nothing written for the implementer.
+export function TaskPanel({ b, k, close }: { b: Board; k: string; close: () => void }) {
   useEffect(() => {
     const off = (ev: KeyboardEvent) => ev.key === "Escape" && close();
     addEventListener("keydown", off);
     return () => removeEventListener("keydown", off);
   }, [close]);
-  const keep = (p: Parts) => { setParts(p); try { localStorage.setItem(KEPT, JSON.stringify(p)); } catch { /* not kept */ } };
   const t: TaskDetail | undefined = b.tasks?.[k];
   if (!t) return null;
   const st = t.epic !== null ? b.stages.find((x) => x.i === t.epic) : undefined;
   const cyc = b.cycles.find((c) => c.num === t.cycle);
   const field = (name: string) => t.fields.find((f) => f.k === name)?.v ?? "";
   const [cls, word] = MARK[t.mark] ?? MARK[" "];
-  const sec = (id: string, label: string, v: string, tone = "") => parts[id] && v ? (
-    <div className={`ep-sec ${tone}`} key={`${id}-${label}`}><span className="lab">{label}</span><div className="v"><Md text={v} /></div></div>
-  ) : null;
-  const slot = new Map((cyc?.assets ?? []).map((a) => [a.name, a]));
+  const what = field("What"), change = field("Change"), done = field("Done"), stuck = field("Blocked") || field("Dropped");
+  const ids = [...new Set(field("GDD").match(/[A-Z]+(?:\.[A-Z0-9_]+)+/g) ?? [])];
   return (
     <>
       <div className="ep-scrim" onClick={close} />
@@ -266,43 +242,13 @@ export function TaskPanel({ b, k, file, close }: { b: Board; k: string; file: (p
         <div className="ep-top"><code>{k}</code><span className="lab">{st?.name ?? "No epic"}</span><button className="btn ghost" onClick={close} aria-label="Close">×</button></div>
         <div className="ep-body">
           <h2>{t.title}</h2>
-          <div className="chips"><span className="chip acc">{st?.name ?? "No epic"}</span>{t.kind === "playtest" ? <span className="chip bad">playtest</span> : null}</div>
-          {parts.screen && st?.image && !st.common ? <div className="ep-hero" style={{ backgroundImage: `url(${file(st.image)})` }}>{st.shot ? <span>{st.name} · cycle {st.shot.cycle}</span> : null}</div> : null}
-          {parts.status ? (
-            <div className="ep-sec"><span className="lab">Status</span>
-              <div className="v"><i className={`dot ep-${cls}`} /> {word} · {t.kind === "playtest" ? `playtest ${t.doc.replace(/\.md$/, "")}` : `cycle ${t.cycle}${cyc ? ` — ${cyc.name}` : ""}`}{t.wave ? ` · wave ${t.wave}` : ""}</div>
-            </div>
-          ) : null}
-          {parts.outcome ? <>{sec("outcome", "Done", field("Done"))}{sec("outcome", "Blocked", field("Blocked"), "bad")}{sec("outcome", "Dropped", field("Dropped"))}</> : null}
-          {sec("bug", "Problems", field("Problems"))}{sec("bug", "Cause", field("Cause"))}{sec("bug", "Kind", field("Kind"))}
-          {sec("check", "Check", field("Check"))}
-          {parts.decisions && t.decisions.length ? (
-            <div className="ep-sec"><span className="lab">Decisions it hangs on</span>
-              {t.decisions.map((d) => (
-                <div key={d.num} className="ep-dec"><code>{d.num}</code>{d.title}
-                  {d.answer ? <span className="a">→ {d.answer}</span> : d.done ? null : <span className="a bad">waiting for your answer</span>}
-                </div>
-              ))}
-            </div>
-          ) : null}
-          {parts.assets && t.assets.length ? (
-            <div className="ep-sec"><span className="lab">Assets it names</span>
-              <div className="chips">{t.assets.map((n) => { const a = slot.get(n); const s = a?.st ?? "none";
-                return <span key={n} className={`chip ${s === "done" ? "ok" : s === "temp" ? "warn" : "bad"}`}>{n} · {s === "done" ? "made" : s === "temp" ? "placeholder" : "not made"}</span>; })}</div>
-            </div>
-          ) : null}
-          {sec("spec", "Spec · design", field("Spec · Design"))}
-          {sec("gdd", "GDD", field("GDD"), "code")}
-          {sec("where", "Where", field("Where"), "code")}
-          {sec("donttouch", "Do not touch", field("Do not touch"), "code")}
-          {sec("risk", "Risk", field("Risk"))}
-          {sec("skills", "Skills", field("Skills"), "code")}
-        </div>
-        <div className="ep-pick">
-          <div className="ep-pick-h"><span className="lab">Show</span><button className="link-btn" onClick={() => keep(FIRST)}>Reset</button></div>
-          <div className="chips">
-            {PARTS.map((p) => <button key={p.id} className={`chip${parts[p.id] ? " acc" : ""}`} aria-pressed={!!parts[p.id]} onClick={() => keep({ ...parts, [p.id]: !parts[p.id] })}>{p.label}</button>)}
-          </div>
+          <div className="small muted"><i className={`dot ep-${cls}`} /> {word} · {t.kind === "playtest" ? `playtest ${t.doc.replace(/\.md$/, "")}` : `cycle ${t.cycle}${cyc ? ` — ${cyc.name}` : ""}`}</div>
+          {what ? <div className="ep-sec"><span className="lab">What it is</span><div className="v"><Md text={what} /></div></div> : null}
+          {change ? <div className="ep-sec"><span className="lab">How it will change</span><div className="v"><Md text={change} /></div></div> : null}
+          {done ? <div className="ep-sec"><span className="lab">What changed</span><div className="v"><Md text={done} /></div></div> : null}
+          {stuck ? <div className="ep-sec bad"><span className="lab">{field("Blocked") ? "Blocked" : "Dropped"}</span><div className="v"><Md text={stuck} /></div></div> : null}
+          {!what && !change && !done ? <div className="small muted">Planned before tasks said in plain words what they are.</div> : null}
+          {ids.length ? <div className="ep-sec"><span className="lab">GDD</span><div className="chips">{ids.map((x) => <code key={x} className="tchip">{x}</code>)}</div></div> : null}
         </div>
       </aside>
     </>

@@ -172,7 +172,7 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
       </main>
       </div>
       <SessionToasts box={box} />
-      {task ? <TaskPanel b={b} k={task} file={file} close={closeTask} /> : null}
+      {task ? <TaskPanel b={b} k={task} close={closeTask} /> : null}
       {zoom ? (
         <div className="zoombox" onClick={() => setZoom(null)} role="dialog" aria-label={zoom.label}>
           <img src={zoom.src} alt="" />
