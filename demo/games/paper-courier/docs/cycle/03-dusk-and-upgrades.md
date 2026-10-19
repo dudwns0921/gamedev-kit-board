@@ -94,4 +94,6 @@ The end of the day should mean something: a lighthouse, a shop, an upgrade.
 ## Play
 
 ### Screens
+- Over the islands — `docs/capture/islands-2.png`
+- Drop the letters — `docs/capture/drop-2.png`
 - Dusk and the lighthouse — `docs/capture/dusk.png`

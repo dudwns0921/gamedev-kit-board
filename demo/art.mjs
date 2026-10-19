@@ -14,6 +14,9 @@ const PICTURES = [
   ["paper-courier", "docs/capture/islands.png", 1280, 720, "islands"],
   ["paper-courier", "docs/capture/drop.png", 1280, 720, "drop"],
   ["paper-courier", "docs/capture/dusk.png", 1280, 720, "dusk"],
+  ["paper-courier", "docs/capture/take-off-2.png", 1280, 720, "takeOff2"],
+  ["paper-courier", "docs/capture/islands-2.png", 1280, 720, "islands2"],
+  ["paper-courier", "docs/capture/drop-2.png", 1280, 720, "drop2"],
   ["paper-courier", "assets/art/plane.png", 512, 512, "plane"],
   ["paper-courier", "assets/art/mailbox.png", 512, 512, "mailbox"],
   ["paper-courier", "assets/art/lighthouse.png", 512, 512, "lighthouse"],
@@ -54,6 +57,10 @@ const S = {
   drop(c, w, h){ sky(c, w, h, "#9BD3EE", "#DDF1F8"); sea(c, w, h, h*.82); island(c, 640, h*.74, 1.6); mailbox(c, 640, h*.7, .9); plane(c, 520, 170, 1.3, .2);
     letter(c, 600, 330, 1.2); c.strokeStyle = P.gold; c.lineWidth = 8; c.beginPath(); c.arc(640, h*.7 - 70, 90, 0, Math.PI*2); c.stroke(); c.font = "bold 64px sans-serif"; c.fillStyle = P.gold; c.fillText("+3", 760, h*.7 - 120); },
   dusk(c, w, h){ sky(c, w, h, P.dusk, P.dusk2); circle(c, 980, h*.62, 70, "#F6C177"); sea(c, w, h, h*.72); c.globalAlpha=.25; rect(c, 0, h*.72, w, h*.28, P.dusk); c.globalAlpha=1; island(c, 330, h*.7, 1.2); lighthouse(c, 330, h*.68, 1.2, true); plane(c, 860, 260, 1, -.1); },
+  takeOff2(c, w, h){ sky(c, w, h, "#8CCBEA", "#D8EEF7"); cloud(c, 420, 120, 1.4, "#fff"); cloud(c, 1000, 300, .7, "#fff"); sea(c, w, h, h*.82); island(c, 160, h*.8, .9); plane(c, 900, 200, 1.9, -.4); },
+  islands2(c, w, h){ sky(c, w, h, "#F7D9C4", "#BFE3F2"); cloud(c, 700, 90, 1, "#fff"); sea(c, w, h, h*.76); island(c, 300, h*.66, 1.1); island(c, 900, h*.62, 1.3); mailbox(c, 900, h*.6, .7);
+    for (let i = 0; i < 3; i++) { c.strokeStyle = P.ink; c.lineWidth = 5; c.beginPath(); c.moveTo(540 + i*60, 200 + i*14); c.lineTo(560 + i*60, 186 + i*14); c.lineTo(580 + i*60, 200 + i*14); c.stroke(); } plane(c, 420, 300, 1, .05); },
+  drop2(c, w, h){ sky(c, w, h, P.sky2, "#F4E3D7"); sea(c, w, h, h*.84); island(c, 760, h*.76, 1.4); mailbox(c, 760, h*.72, .8); plane(c, 380, 220, 1.2, .25); letter(c, 560, 360, 1.1); letter(c, 640, 300, .9); },
   plane(c, w, h){ rect(c, 0, 0, w, h, "#EAF6FB"); plane(c, w/2, h/2, 2.1, -.2); },
   mailbox(c, w, h){ rect(c, 0, 0, w, h, "#FDF3E6"); mailbox(c, w/2-20, h*.62, 2.2); },
   lighthouse(c, w, h){ rect(c, 0, 0, w, h, "#2F3A5F"); lighthouse(c, w/2, h*.92, 1.45, true); },

@@ -4,7 +4,7 @@ import { Fragment, useEffect, useState, type ReactNode } from "react";
 import type { BacklogItem, Board, EpicTask, Stage, TaskDetail } from "@/lib/board";
 
 // The game laid out as epics: each stage of play is one (and Foundation, for what no stage owns), holding the tasks of every cycle and playtest that name it.
-// The epic cards stay on top; the chosen one opens under all of them — its cycles in one row, the tasks of the one picked below it.
+// The epic cards stay on top, words only; the chosen one opens under all of them — its screens from play, then its cycles, in one row, and what is picked below it.
 // A task opens in a panel from the right, with the lines written under it; which of those the panel shows is the viewer's choice, kept in this browser.
 
 export type OpenTask = (key: string) => void;
@@ -68,16 +68,19 @@ function Row({ t, open, epic }: { t: EpicTask | { key: string; kind: string; tit
 
 const waiting = (b: Board, st: Stage) => (b.backlog ?? []).filter((x) => x.mark === " " && x.stage === st.i);
 
-export function Epics({ b, file, open, sel, pick: choose }: { b: Board; file: (p: string) => string; open: OpenTask; sel: number | null; pick: (i: number | null) => void }) {
+export function Epics({ b, file, open, sel, pick: choose, zoom }: {
+  b: Board; file: (p: string) => string; open: OpenTask; sel: number | null; pick: (i: number | null) => void; zoom: (src: string, label: string) => void;
+}) {
   const [group, setGroup] = useState<string | null>(null);
   const setSel = (i: number | null) => { choose(i); if (i !== null) requestAnimationFrame(() => document.getElementById("epic-detail")?.scrollIntoView({ block: "nearest" })); };
   const epics = b.stages.filter((st) => st.epic && (!st.common || st.epic.tasks.length));
   if (!epics.length) return <div className="empty">This board came from a kit without epics — update the plugin in the game and let it redraw.</div>;
   const st = epics.find((x) => x.i === sel);
   const live = (ts: EpicTask[]) => ts.filter((t) => t.mark !== "-");
-  let groups: { id: string; label: string; sub: string; tasks?: EpicTask[]; backlog?: BacklogItem[] }[] = [];
+  let groups: { id: string; label: string; sub: string; tasks?: EpicTask[]; backlog?: BacklogItem[]; screens?: NonNullable<Stage["screens"]> }[] = [];
   if (st?.epic) {
     const ts = live(st.epic.tasks);
+    if (st.screens?.length) groups.push({ id: "screens", label: "Screens", sub: `${st.screens.length} from play`, screens: st.screens });
     for (const c of [...b.cycles].reverse()) {
       const here = ts.filter((t) => t.kind === "cycle" && t.cycle === c.num);
       if (here.length) groups.push({ id: `c${c.num}`, label: `Cycle ${c.num}`, sub: c.name, tasks: here });
@@ -97,9 +100,6 @@ export function Epics({ b, file, open, sel, pick: choose }: { b: Board; file: (p
           return (
             <button key={x.i} className={`card link stage ep-card${x.i === sel ? " sel" : ""}`} aria-expanded={x.i === sel}
               onClick={() => { setSel(x.i === sel ? null : x.i); setGroup(null); }}>
-              <div className={`hero${x.image && !x.common ? "" : " ep-none"}`} style={x.image && !x.common ? { backgroundImage: `url(${file(x.image)})` } : undefined}>
-                {x.image && !x.common ? null : <span>{x.foundation ? "Under every stage" : x.common ? "Not sorted yet" : "No screen yet"}</span>}
-              </div>
               <span className="lab">{x.foundation ? "Foundation" : x.common ? "To sort" : "Epic"}{x.loop ? " · loop" : ""}</span>
               <h2>{x.name}</h2>
               {x.about ? <span className="small muted">{x.about}</span> : null}
@@ -133,7 +133,16 @@ export function Epics({ b, file, open, sel, pick: choose }: { b: Board; file: (p
           {pick ? (
             <div className="ep-list">
               <span className="lab">{pick.label} — {pick.sub}</span>
-              {pick.backlog ? pick.backlog.map((x) => <div key={x.num} className="ep-bl"><code>{x.num}</code><span>{x.text}</span></div>)
+              {pick.screens ? (
+                <div className="ep-shots">
+                  {pick.screens.map((x) => (
+                    <button key={x.img} className="ep-shot" onClick={() => zoom(file(x.img), `${st!.name} · cycle ${x.cycle}`)} aria-label={`${st!.name}, cycle ${x.cycle}`}>
+                      <span className="im" style={{ backgroundImage: `url(${file(x.img)})` }} />
+                      <small>Cycle {x.cycle} — {x.name}</small>
+                    </button>
+                  ))}
+                </div>
+              ) : pick.backlog ? pick.backlog.map((x) => <div key={x.num} className="ep-bl"><code>{x.num}</code><span>{x.text}</span></div>)
                 : pick.tasks!.map((t) => <Row key={t.key} t={t} open={open} />)}
             </div>
           ) : null}

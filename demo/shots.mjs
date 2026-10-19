@@ -26,6 +26,8 @@ const SHOTS = [
   { name: "games", path: "/", to: [["gamedev-kit-site/public/board-games.png", "dark", SITE]] },
   { name: "epics", path: "/g/paper-courier?tab=epics", act: [["click", ".ep-card >> text=Dusk and the lighthouse"]],
     to: [["gamedev-kit-site/public/board-epics.png", "dark", SITE], ["claude-gamedev-kit/assets/dashboard-light.png", "light", README], ["claude-gamedev-kit/assets/dashboard-dark.png", "dark", README]] },
+  { name: "screens", path: "/g/paper-courier?tab=epics", act: [["click", ".ep-card >> text=Over the islands"], ["click", ".ep-cycles button >> text=Screens"]],
+    to: [["gamedev-kit-site/public/board-screens.png", "dark", SITE]] },
   { name: "cycle", path: "/g/paper-courier?tab=cycle",
     to: [["gamedev-kit-site/public/board-cycle.png", "dark", SITE], ["claude-gamedev-kit/assets/dashboard-cycle-light.png", "light", README], ["claude-gamedev-kit/assets/dashboard-cycle-dark.png", "dark", README]] },
   { name: "task", path: "/g/paper-courier?tab=cycle", act: [["click", ".ep-row >> text=Light the lighthouse at dusk"]],
@@ -80,10 +82,14 @@ try {
       await page.goto(BASE + shot.path, { waitUntil: "load" });  // not "networkidle": the page holds a live connection open
       await page.waitForLoadState("domcontentloaded"); await page.waitForTimeout(600);
       for (const [what, sel] of shot.act ?? []) if (what === "click") await page.click(sel);
-      if (shot.name === "epics") {
+      if (shot.name === "epics" || shot.name === "screens") {
         await page.waitForTimeout(300);  // after the page brings the detail into view itself
-        await page.evaluate(() => { const b = document.querySelector("main.body"); const c = document.querySelector(".ep-card.sel"); if (b && c) b.scrollTop += c.getBoundingClientRect().top - b.getBoundingClientRect().top - 16; });  // the chosen card's row, then its detail
+        await page.evaluate((to) => {  // the chosen card's row, then its detail — or, for its screens, the detail from its top
+          const b = document.querySelector("main.body"); const c = document.querySelector(to);
+          if (b && c) b.scrollTop += c.getBoundingClientRect().top - b.getBoundingClientRect().top - 16;
+        }, shot.name === "screens" ? "#epic-detail" : ".ep-card.sel");
       }
+      await page.mouse.move(0, 0);  // no card left looking hovered
       await page.waitForTimeout(400);  // pictures in, the panel's slide done
       mkdirSync(path.dirname(out), { recursive: true });
       await page.screenshot({ path: out });

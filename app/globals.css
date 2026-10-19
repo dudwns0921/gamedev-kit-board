@@ -399,7 +399,6 @@ table.tbl.parts2 td.pc { width: 200px; }
 /* epics — the cards stay on top, the chosen epic opens under them; a task opens in a panel from the right */
 .ep-done { background: var(--done); } .ep-doing { background: var(--accent); } .ep-open { background: var(--none); } .ep-blocked { background: var(--bad); }
 .ep-dropped { background: transparent; border: 1px solid var(--none); }
-.stage .hero.ep-none { display: grid; place-items: center; color: var(--tx3); font-size: 12px; }
 .ep-cycles { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
 .ep-cycles button { flex: none; display: grid; gap: 2px; text-align: left; padding: 7px 11px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface2); min-width: 96px; cursor: pointer; }
 .ep-cycles button b { font-size: 13px; }
@@ -441,3 +440,8 @@ table.tbl.parts2 td.pc { width: 200px; }
 .ep-wait { align-self: flex-start; }
 @media (max-width: 860px) { .ep-board { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 520px) { .ep-board { grid-template-columns: minmax(0, 1fr); } }
+.ep-shots { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); }
+.ep-shot { display: flex; flex-direction: column; gap: 6px; border: 0; padding: 0; background: none; text-align: left; cursor: zoom-in; color: inherit; font: inherit; }
+.ep-shot .im { display: block; aspect-ratio: 16 / 9; border-radius: 10px; border: 1px solid var(--border); background: var(--surface2) center / cover no-repeat; }
+.ep-shot:hover .im { border-color: var(--accent); }
+.ep-shot small { color: var(--tx3); font-size: 12px; }

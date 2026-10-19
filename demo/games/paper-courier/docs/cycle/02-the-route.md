@@ -72,6 +72,7 @@ A whole route: three islands, wind, and something that gets in the way.
 ## Play
 
 ### Screens
+- Take off — `docs/capture/take-off-2.png`
 - Over the islands — `docs/capture/islands.png`
 - Drop the letters — `docs/capture/drop.png`
 - Checked (ok): Can you reach the third island in one glide with the wind behind you? (2026-01-16)

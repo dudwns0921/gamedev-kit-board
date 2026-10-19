@@ -47,6 +47,8 @@ export type Stage = {
   lanes: Record<string, Item[]>;
   parts?: Part[];
   halves?: Halves;
+  /** The screens every cycle shot of this stage, newest first — one per cycle (the epic's Screens tab) */
+  screens?: { img: string; cycle: string; name: string }[];
   open: Ask[];
   work: { cycle: string; name: string; stage: string; tasks: { num: string; title: string; mark: string; did: string }[] }[];
 };
