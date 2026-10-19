@@ -6,11 +6,12 @@ import ThemePicker from "../../theme-picker";
 import NotNeeded, { type Run } from "./not-needed";
 import ReviewTab, { type Zoom } from "./review";
 import { SessionPill, SessionToasts } from "./session";
+import { Backlog, Epics, TaskPanel, type OpenTask } from "./epics";
 
 // One game, drawn from the data the kit sends. The page holds one connection (/g/<game>/events) and is told the moment a newer board
 // arrives or the game's inbox changes — it redraws in place, the open tab and stage stay. Nothing asks on a clock.
 // "Refresh" reads both once more and reconnects — for when the connection dropped (a sleeping laptop, a phone on the tunnel).
-const TABS = ["overview", "review", "stages", "cycles", "assets"] as const;
+const TABS = ["overview", "review", "epics", "cycles", "backlog", "stages", "assets"] as const;
 type Tab = (typeof TABS)[number];
 const WORD: Record<St, string> = { done: "Done", temp: "Placeholder", none: "Not made", bad: "Problem" };
 const NONE: Inbox = { sent: [], taken: [], relayed: [], untaken: false };
@@ -26,7 +27,10 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
   const [stage, setStage] = useState<number | null>(null);
   const [cyc, setCyc] = useState<string | null>(null);  // the cycle open in the Cycles tab — the newest when none was picked
   const [zoom, setZoom] = useState<{ src: string; label: string } | null>(null);
+  const [task, setTask] = useState<string | null>(null);  // the task open in the side panel, by its key
   const b = s.board as Board;
+  const openTask: OpenTask = useCallback((k: string) => setTask(k), []);
+  const closeTask = useCallback(() => setTask(null), []);
   const file = useCallback((p: string) => (p ? `/g/${s.game}/${p}` : ""), [s.game]);
   const body = useRef<HTMLElement>(null);  // the part that scrolls — the bar and the tabs above it stay put
   const flash = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -117,9 +121,10 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
     body.current?.scrollTo({ top: 0 });
   }
 
-  const flow = b.stages.filter((x) => !x.common);
+  const flow = b.stages.filter((x) => !x.common && !x.foundation);  // the stages of play — Foundation is an epic under them, not a stage the player meets
   const z: Zoom = (src, label) => setZoom({ src, label });
-  const counts = { review: b.review.filter((i) => !i.later).length, problems: s.counts.problems };  // what was put off to a later cycle waits on no one now
+  const counts = { review: b.review.filter((i) => !i.later).length, problems: s.counts.problems };
+  const waitingLater = (b.backlog ?? []).filter((x) => x.mark === " ").length;  // what was put off to a later cycle waits on no one now
 
   return (
     <>
@@ -147,6 +152,7 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
             <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? "on" : ""} onClick={() => go(t)}>
               {t[0].toUpperCase() + t.slice(1)}
               {t === "review" && counts.review ? <span className="count">{counts.review}</span> : null}
+              {t === "backlog" && waitingLater ? <span className="count calm">{waitingLater}</span> : null}
             </button>
           ))}
         </nav>
@@ -161,12 +167,15 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
         {tab === "overview" ? <Overview s={s} b={b} flow={flow} counts={counts} file={file} go={go} run={run} /> : null}
         {tab === "review" ? <ReviewTab game={s.game} box={box} items={b.review} file={file} zoom={z} run={run} /> : null}
         {tab === "stages" ? <Stages b={b} sel={stage ?? flow[0]?.i ?? 0} pick={setStage} file={file} zoom={z} run={run} go={go} /> : null}
-        {tab === "cycles" ? <Cycles b={b} sel={cyc ?? b.cycles[b.cycles.length - 1]?.num ?? ""} pick={setCyc} file={file} zoom={z} go={go} /> : null}
+        {tab === "epics" ? <Epics b={b} file={file} open={openTask} /> : null}
+        {tab === "cycles" ? <Cycles b={b} sel={cyc ?? b.cycles[b.cycles.length - 1]?.num ?? ""} pick={setCyc} file={file} zoom={z} go={go} open={b.tasks ? openTask : undefined} /> : null}
+        {tab === "backlog" ? <Backlog b={b} /> : null}
         {tab === "assets" ? <Assets b={b} file={file} zoom={z} go={go} /> : null}
        </div>
       </main>
       </div>
       <SessionToasts box={box} />
+      {task ? <TaskPanel b={b} k={task} file={file} close={closeTask} /> : null}
       {zoom ? (
         <div className="zoombox" onClick={() => setZoom(null)} role="dialog" aria-label={zoom.label}>
           <img src={zoom.src} alt="" />
@@ -564,8 +573,8 @@ function StageCell({ ids, b, file, go }: { ids: number[]; b: Board; file: (p: st
   );
 }
 
-function Cycles({ b, sel, pick, file, zoom, go }: {
-  b: Board; sel: string; pick: (c: string) => void; file: (p: string) => string; zoom: Zoom; go: (t: Tab, st?: number | null, cy?: string) => void;
+function Cycles({ b, sel, pick, file, zoom, go, open }: {
+  b: Board; sel: string; pick: (c: string) => void; file: (p: string) => string; zoom: Zoom; go: (t: Tab, st?: number | null, cy?: string) => void; open?: OpenTask;
 }) {
   const [view, setView] = useState<"tasks" | "assets">("tasks");
   const [onlyAssets, setOnlyAssets] = useState(false);
@@ -649,7 +658,7 @@ function Cycles({ b, sel, pick, file, zoom, go }: {
                         return (
                           <tr key={t.num} className={`${cls}${added.length ? " has" : ""}`}>
                             <td className="state"><span className={`sign ${cls}`}>{sign}</span> <b className="mono">{t.num}</b></td>
-                            <td className="what">{t.title}
+                            <td className="what">{open && t.key ? <button className="ep-title" onClick={() => open(t.key!)}>{t.title}</button> : t.title}
                               {t.mark === ">" ? <small className="now">being worked on now</small> : null}
                               {t.blocked ? <small className="blk">Blocked: {t.blocked}</small> : null}
                             </td>

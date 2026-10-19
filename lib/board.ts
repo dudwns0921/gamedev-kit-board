@@ -19,11 +19,26 @@ export type Halves = { function: number | null; assets: number | null; functions
 
 export type Part = { name: string; about: string; named: boolean; complete: number | null } & Partial<Halves>;
 
+/** An epic's task as the stage lists it — the whole task is in Board.tasks under its key. kind: cycle · playtest. */
+export type EpicTask = { key: string; kind: string; title: string; mark: string; cycle: string };
+
+/** What is put off for a later cycle (the game's docs/backlog.md). mark: ' ' waiting · '>' taken into cycle `to` · '-' dropped (why: dropped).
+ *  key: the review card it answers · stage: the epic it belongs to (null: none yet). */
+export type BacklogItem = { num: string; mark: string; text: string; epic: string; key: string; from: string; to: string; dropped: string; date: string; stage: number | null };
+
+/** One task by its key (C16-T3, or "<playtest> T3"): the lines written under it (Where · Check · Risk · Problems · …), the decisions it names, the assets it names. */
+export type TaskDetail = { kind: string; num: string; title: string; mark: string; epic: number | null; cycle: string; doc: string; wave: number;
+  fields: { k: string; v: string }[]; assets: string[]; decisions: { num: string; title: string; answer: string; done: boolean }[] };
+
 export type Stage = {
   i: number;
   name: string;
   about: string;
   common: boolean;
+  /** Foundation: the epic for what no stage of play owns — not in the order of play */
+  foundation?: boolean;
+  /** Each stage is an epic: its tasks across every cycle and playtest, their counts, and its backlog lines (B numbers) */
+  epic?: { tasks: EpicTask[]; counts: { done: number; doing: number; open: number; blocked: number }; backlog: string[] };
   loop: boolean;
   complete: number | null;
   image: string;
@@ -67,7 +82,7 @@ export type Used = { stage: string; code: string[] };
 export type Model = { name: string; img: string; tool: string; st: St; state: string; old: boolean; sample: boolean; reference: boolean; what: string; rejected: number; used?: Used };
 
 /** A task of a cycle. mark: x done · ' ' open · '>' being worked on now · '!' blocked · '-' dropped. did · blocked: the lines written under it. */
-export type Task = { num: string; title: string; mark: string; did?: string; blocked?: string; wave?: number; stages?: number[]; assets?: string[] };
+export type Task = { num: string; key?: string; epic?: string; title: string; mark: string; did?: string; blocked?: string; wave?: number; stages?: number[]; assets?: string[] };
 
 /** An asset a cycle listed: what it is, how far it is, the stage it is in, and the tasks that name it. */
 export type CycleAsset = { name: string; kind: string; what: string; st: St; stage: number | null; img: string; audio: string; tasks: string[] };
@@ -84,6 +99,8 @@ export type Board = {
     list?: Task[]; stages?: number[]; shots?: { stage: string; img: string }[]; assets?: CycleAsset[];
     tasks: { done: number; open: number; blocked: number; doing?: number }; decisions: { open: number; all: number } }[];
   review: Review[];
+  backlog?: BacklogItem[];
+  tasks?: Record<string, TaskDetail>;
   assets: { style: string; world: string; learned: string[]; sound: string; models: Model[]; loose: Model[]; sounds: (Item & { used?: Used })[] };
 };
 

@@ -1,0 +1,259 @@
+"use client";
+
+import { Fragment, useEffect, useState, type ReactNode } from "react";
+import type { BacklogItem, Board, EpicTask, Stage, TaskDetail } from "@/lib/board";
+
+// The game laid out as epics: each stage of play is one (and Foundation, for what no stage owns), holding the tasks of every cycle and playtest that name it.
+// The epic cards stay on top; the chosen one opens under all of them — its cycles in one row, the tasks of the one picked below it.
+// A task opens in a panel from the right, with the lines written under it; which of those the panel shows is the viewer's choice, kept in this browser.
+
+export type OpenTask = (key: string) => void;
+
+const MARK: Record<string, [string, string]> = { x: ["done", "Done"], ">": ["doing", "In hand"], " ": ["open", "To do"], "!": ["blocked", "Blocked"], "-": ["dropped", "Dropped"] };
+
+function counts(ts: { mark: string }[]) {
+  return { done: ts.filter((t) => t.mark === "x").length, doing: ts.filter((t) => t.mark === ">").length,
+    open: ts.filter((t) => t.mark === " ").length, blocked: ts.filter((t) => t.mark === "!").length };
+}
+
+function Bar({ c }: { c: ReturnType<typeof counts> }) {
+  const n = c.done + c.doing + c.open + c.blocked;
+  return (
+    <div className="meter" title={`done ${c.done} · in hand ${c.doing} · to do ${c.open} · blocked ${c.blocked}`}>
+      {n ? (["done", "doing", "blocked", "open"] as const).map((k) => (c[k] ? <i key={k} className={`ep-${k}`} style={{ flex: c[k] }} /> : null)) : null}
+    </div>
+  );
+}
+
+function Counts({ c }: { c: ReturnType<typeof counts> }) {
+  return (
+    <div className="legend">
+      <span><i className="dot ep-done" />{c.done} done</span>
+      {c.doing ? <span><i className="dot ep-doing" />{c.doing} in hand</span> : null}
+      <span><i className="dot ep-open" />{c.open} to do</span>
+      {c.blocked ? <span><i className="dot ep-blocked" />{c.blocked} blocked</span> : null}
+    </div>
+  );
+}
+
+/** The documents' inline marks — `code`, **bold** — and their bullet lines, drawn as such. */
+function Md({ text }: { text: string }) {
+  const inline = (s: string) => s.split(/(`[^`]+`|\*\*[^*]+\*\*)/).map((p, i) =>
+    p.startsWith("`") && p.endsWith("`") && p.length > 1 ? <code key={i}>{p.slice(1, -1)}</code>
+      : p.startsWith("**") && p.endsWith("**") && p.length > 3 ? <b key={i}>{p.slice(2, -2)}</b> : <Fragment key={i}>{p}</Fragment>);
+  const out: ReactNode[] = [];
+  let list: ReactNode[] = [];
+  const flush = () => { if (list.length) { out.push(<ul key={`u${out.length}`}>{list}</ul>); list = []; } };
+  text.split("\n").forEach((line, i) => {
+    const m = line.match(/^[-*] (.*)/);
+    if (m) list.push(<li key={i}>{inline(m[1])}</li>);
+    else { flush(); if (line.trim()) out.push(<div key={i}>{inline(line)}</div>); }
+  });
+  flush();
+  return <>{out}</>;
+}
+
+function Row({ t, open, epic }: { t: EpicTask | { key: string; kind: string; title: string; mark: string }; open: OpenTask; epic?: string }) {
+  const [cls, word] = MARK[t.mark] ?? MARK[" "];
+  return (
+    <button className="ep-row" onClick={() => open(t.key)}>
+      <i className={`dot ep-${cls}`} title={word} />
+      <span className="t">
+        <b className={t.mark === "-" ? "struck" : ""}>{t.title}</b>
+        <span className="meta"><code>{t.key}</code>{t.kind === "playtest" ? <span className="chip bad">playtest</span> : null}{epic ? <span className="chip">{epic}</span> : null}</span>
+      </span>
+    </button>
+  );
+}
+
+const waiting = (b: Board, st: Stage) => (b.backlog ?? []).filter((x) => x.mark === " " && x.stage === st.i);
+
+export function Epics({ b, file, open }: { b: Board; file: (p: string) => string; open: OpenTask }) {
+  const [sel, setSel] = useState<number | null>(null);
+  const [group, setGroup] = useState<string | null>(null);
+  const epics = b.stages.filter((st) => st.epic && (!st.common || st.epic.tasks.length));
+  if (!epics.length) return <div className="empty">This board came from a kit without epics — update the plugin in the game and let it redraw.</div>;
+  const st = epics.find((x) => x.i === sel);
+  const live = (ts: EpicTask[]) => ts.filter((t) => t.mark !== "-");
+  let groups: { id: string; label: string; sub: string; tasks?: EpicTask[]; backlog?: BacklogItem[] }[] = [];
+  if (st?.epic) {
+    const ts = live(st.epic.tasks);
+    for (const c of [...b.cycles].reverse()) {
+      const here = ts.filter((t) => t.kind === "cycle" && t.cycle === c.num);
+      if (here.length) groups.push({ id: `c${c.num}`, label: `Cycle ${c.num}`, sub: c.name, tasks: here });
+    }
+    const bugs = ts.filter((t) => t.kind === "playtest");
+    if (bugs.length) groups.push({ id: "pt", label: "Playtests", sub: `${bugs.length} problems`, tasks: bugs });
+    const bl = waiting(b, st);
+    if (bl.length) groups.push({ id: "bl", label: "Backlog", sub: `${bl.length} waiting`, backlog: bl });
+  } else groups = [];
+  const pick = groups.find((g) => g.id === group) ?? groups[0];
+  return (
+    <>
+      <div className="flow">
+        {epics.map((x) => {
+          const c = counts(live(x.epic!.tasks));
+          const queued = waiting(b, x).length;
+          return (
+            <button key={x.i} className={`card link stage ep-card${x.i === sel ? " sel" : ""}`} aria-expanded={x.i === sel}
+              onClick={() => { setSel(x.i === sel ? null : x.i); setGroup(null); }}>
+              <div className={`hero${x.image && !x.common ? "" : " ep-none"}`} style={x.image && !x.common ? { backgroundImage: `url(${file(x.image)})` } : undefined}>
+                {x.image && !x.common ? null : <span>{x.foundation ? "Under every stage" : x.common ? "Not sorted yet" : "No screen yet"}</span>}
+              </div>
+              <span className="lab">{x.foundation ? "Foundation" : x.common ? "To sort" : "Epic"}{x.loop ? " · loop" : ""}</span>
+              <h2>{x.name}</h2>
+              {x.about ? <span className="small muted">{x.about}</span> : null}
+              <Bar c={c} />
+              <Counts c={c} />
+              {x.halves && (x.halves.function !== null || x.halves.assets !== null) ? (
+                <span className="small muted">Function <b className="mono">{x.halves.function ?? "—"}%</b> · Assets <b className="mono">{x.halves.assets ?? "—"}%</b></span>
+              ) : null}
+              {queued || x.open.length ? (
+                <div className="chips">{queued ? <span className="chip warn">backlog {queued}</span> : null}{x.open.length ? <span className="chip bad">{x.open.length} undecided</span> : null}</div>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
+      {st ? (
+        <section className="card sec" id="epic-detail">
+          <div className="sec-h"><span className="lab">Epic</span><h2>{st.name}</h2><Counts c={counts(live(st.epic!.tasks))} /></div>
+          {groups.length ? (
+            <div className="ep-cycles" role="group" aria-label="Cycles">
+              {groups.map((g) => {
+                const c = g.tasks ? counts(g.tasks) : null;
+                return (
+                  <button key={g.id} className={g === pick ? "on" : ""} aria-pressed={g === pick} onClick={() => setGroup(g.id)}>
+                    <b>{g.label}</b><small>{c && g.tasks ? `${c.done}/${g.tasks.length} done` : g.sub}</small>
+                  </button>
+                );
+              })}
+            </div>
+          ) : <div className="small muted">No tasks name this epic yet.</div>}
+          {pick ? (
+            <div className="ep-list">
+              <span className="lab">{pick.label} — {pick.sub}</span>
+              {pick.backlog ? pick.backlog.map((x) => <div key={x.num} className="ep-bl"><code>{x.num}</code><span>{x.text}</span></div>)
+                : pick.tasks!.map((t) => <Row key={t.key} t={t} open={open} />)}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+    </>
+  );
+}
+
+export function Backlog({ b }: { b: Board }) {
+  const all = b.backlog ?? [];
+  const open = all.filter((x) => x.mark === " ");
+  const gone = all.length - open.length;
+  const by = new Map<number | null, BacklogItem[]>();
+  for (const x of open) by.set(x.stage, [...(by.get(x.stage) ?? []), x]);
+  const order = [...b.stages.filter((st) => by.has(st.i)).map((st) => st.i as number | null), ...(by.has(null) ? [null] : [])];
+  return (
+    <>
+      <div className="legend"><span><i className="dot st-temp" />{open.length} waiting</span>{gone ? <span><i className="dot st-none" />{gone} taken or dropped</span> : null}</div>
+      {open.length ? order.map((i) => (
+        <section key={String(i)} className="card sec">
+          <div className="sec-h"><h3>{i === null ? "No epic yet" : b.stages.find((st) => st.i === i)?.name}</h3><span className="lab">{by.get(i)!.length}</span></div>
+          <div className="ep-list">
+            {by.get(i)!.map((x) => (
+              <div key={x.num} className="ep-bl"><code>{x.num}</code>
+                <span>{x.text}<small className="lab">from cycle {x.from}{x.key ? " · answered on the dashboard" : ""}</small></span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )) : <div className="empty">Nothing waits in the backlog. What the user puts off goes here (<code>cycle.py later</code>) until a cycle takes it.</div>}
+    </>
+  );
+}
+
+// What the panel can show — each a section the viewer turns on or off
+const PARTS = [
+  { id: "screen", label: "Epic screen", on: true },
+  { id: "status", label: "Status · cycle · wave", on: true },
+  { id: "outcome", label: "Done · blocked", on: true },
+  { id: "check", label: "Check", on: true },
+  { id: "decisions", label: "Decisions", on: true },
+  { id: "assets", label: "Assets", on: true },
+  { id: "bug", label: "Problem · cause", on: true },
+  { id: "spec", label: "Spec · design lines", on: false },
+  { id: "gdd", label: "GDD ids", on: false },
+  { id: "where", label: "Where (code)", on: false },
+  { id: "donttouch", label: "Do not touch", on: false },
+  { id: "risk", label: "Risk", on: false },
+  { id: "skills", label: "Skills", on: false },
+] as const;
+type Parts = Record<string, boolean>;
+const FIRST: Parts = Object.fromEntries(PARTS.map((p) => [p.id, p.on]));
+const KEPT = "kit-task-parts";
+
+export function TaskPanel({ b, k, file, close }: { b: Board; k: string; file: (p: string) => string; close: () => void }) {
+  const [parts, setParts] = useState<Parts>(FIRST);
+  useEffect(() => { try { const v = localStorage.getItem(KEPT); if (v) setParts({ ...FIRST, ...(JSON.parse(v) as Parts) }); } catch { /* a private window */ } }, []);
+  useEffect(() => {
+    const off = (ev: KeyboardEvent) => ev.key === "Escape" && close();
+    addEventListener("keydown", off);
+    return () => removeEventListener("keydown", off);
+  }, [close]);
+  const keep = (p: Parts) => { setParts(p); try { localStorage.setItem(KEPT, JSON.stringify(p)); } catch { /* not kept */ } };
+  const t: TaskDetail | undefined = b.tasks?.[k];
+  if (!t) return null;
+  const st = t.epic !== null ? b.stages.find((x) => x.i === t.epic) : undefined;
+  const cyc = b.cycles.find((c) => c.num === t.cycle);
+  const field = (name: string) => t.fields.find((f) => f.k === name)?.v ?? "";
+  const [cls, word] = MARK[t.mark] ?? MARK[" "];
+  const sec = (id: string, label: string, v: string, tone = "") => parts[id] && v ? (
+    <div className={`ep-sec ${tone}`} key={`${id}-${label}`}><span className="lab">{label}</span><div className="v"><Md text={v} /></div></div>
+  ) : null;
+  const slot = new Map((cyc?.assets ?? []).map((a) => [a.name, a]));
+  return (
+    <>
+      <div className="ep-scrim" onClick={close} />
+      <aside className="ep-panel" role="dialog" aria-label={k}>
+        <div className="ep-top"><code>{k}</code><span className="lab">{st?.name ?? "No epic"}</span><button className="btn ghost" onClick={close} aria-label="Close">×</button></div>
+        <div className="ep-body">
+          <h2>{t.title}</h2>
+          <div className="chips"><span className="chip acc">{st?.name ?? "No epic"}</span>{t.kind === "playtest" ? <span className="chip bad">playtest</span> : null}</div>
+          {parts.screen && st?.image && !st.common ? <div className="ep-hero" style={{ backgroundImage: `url(${file(st.image)})` }}>{st.shot ? <span>{st.name} · cycle {st.shot.cycle}</span> : null}</div> : null}
+          {parts.status ? (
+            <div className="ep-sec"><span className="lab">Status</span>
+              <div className="v"><i className={`dot ep-${cls}`} /> {word} · {t.kind === "playtest" ? `playtest ${t.doc.replace(/\.md$/, "")}` : `cycle ${t.cycle}${cyc ? ` — ${cyc.name}` : ""}`}{t.wave ? ` · wave ${t.wave}` : ""}</div>
+            </div>
+          ) : null}
+          {parts.outcome ? <>{sec("outcome", "Done", field("Done"))}{sec("outcome", "Blocked", field("Blocked"), "bad")}{sec("outcome", "Dropped", field("Dropped"))}</> : null}
+          {sec("bug", "Problems", field("Problems"))}{sec("bug", "Cause", field("Cause"))}{sec("bug", "Kind", field("Kind"))}
+          {sec("check", "Check", field("Check"))}
+          {parts.decisions && t.decisions.length ? (
+            <div className="ep-sec"><span className="lab">Decisions it hangs on</span>
+              {t.decisions.map((d) => (
+                <div key={d.num} className="ep-dec"><code>{d.num}</code>{d.title}
+                  {d.answer ? <span className="a">→ {d.answer}</span> : d.done ? null : <span className="a bad">waiting for your answer</span>}
+                </div>
+              ))}
+            </div>
+          ) : null}
+          {parts.assets && t.assets.length ? (
+            <div className="ep-sec"><span className="lab">Assets it names</span>
+              <div className="chips">{t.assets.map((n) => { const a = slot.get(n); const s = a?.st ?? "none";
+                return <span key={n} className={`chip ${s === "done" ? "ok" : s === "temp" ? "warn" : "bad"}`}>{n} · {s === "done" ? "made" : s === "temp" ? "placeholder" : "not made"}</span>; })}</div>
+            </div>
+          ) : null}
+          {sec("spec", "Spec · design", field("Spec · Design"))}
+          {sec("gdd", "GDD", field("GDD"), "code")}
+          {sec("where", "Where", field("Where"), "code")}
+          {sec("donttouch", "Do not touch", field("Do not touch"), "code")}
+          {sec("risk", "Risk", field("Risk"))}
+          {sec("skills", "Skills", field("Skills"), "code")}
+        </div>
+        <div className="ep-pick">
+          <div className="ep-pick-h"><span className="lab">Show</span><button className="link-btn" onClick={() => keep(FIRST)}>Reset</button></div>
+          <div className="chips">
+            {PARTS.map((p) => <button key={p.id} className={`chip${parts[p.id] ? " acc" : ""}`} aria-pressed={!!parts[p.id]} onClick={() => keep({ ...parts, [p.id]: !parts[p.id] })}>{p.label}</button>)}
+          </div>
+        </div>
+      </aside>
+    </>
+  );
+}
