@@ -1,0 +1,21 @@
+[
+ {
+  "id": "D2",
+  "cycle": 3,
+  "question": "Which wing shape should the upgraded plane have?",
+  "images": [
+   {
+    "label": "\u2460 swept",
+    "path": "docs/cycle/ref/wing-a.png"
+   },
+   {
+    "label": "\u2461 wide",
+    "path": "docs/cycle/ref/wing-b.png"
+   },
+   {
+    "label": "\u2462 split tail",
+    "path": "docs/cycle/ref/wing-c.png"
+   }
+  ]
+ }
+]

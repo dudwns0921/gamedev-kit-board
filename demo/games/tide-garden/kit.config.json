@@ -1,0 +1,18 @@
+{
+  "engine": "unity",
+  "board": {
+    "flow": [
+      {
+        "name": "Low tide",
+        "about": "Plant on the wet sand"
+      },
+      {
+        "name": "High tide",
+        "about": "See what the sea leaves"
+      }
+    ],
+    "service": {
+      "game": "tide-garden"
+    }
+  }
+}

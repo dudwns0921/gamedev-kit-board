@@ -1,0 +1,8 @@
+{
+  "name": "gamedev-kit-board-demo",
+  "private": true,
+  "type": "module",
+  "description": "Sample games and the script that photographs the dashboard with them — for the README, the landing page and anywhere else that shows it.",
+  "scripts": { "shots": "node shots.mjs" },
+  "devDependencies": { "playwright-core": "1.56.1" }
+}

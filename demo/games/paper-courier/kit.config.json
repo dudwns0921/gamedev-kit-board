@@ -1,0 +1,68 @@
+{
+  "engine": "web",
+  "board": {
+    "flow": [
+      {
+        "name": "Morning at the post office",
+        "about": "Sort the day's letters and pick a route",
+        "ids": [
+          "RULE.SORT.*",
+          "BAL.DAY.*"
+        ],
+        "assets": [
+          "letter_bag"
+        ]
+      },
+      {
+        "name": "Take off",
+        "about": "Hold to rise, let go to glide",
+        "ids": [
+          "BAL.PLANE.*",
+          "INPUT.*"
+        ],
+        "assets": [
+          "plane"
+        ]
+      },
+      {
+        "name": "Over the islands",
+        "about": "Ride the wind between islands",
+        "ids": [
+          "BAL.WIND.*",
+          "RULE.BIRD.*"
+        ],
+        "assets": [
+          "island_small",
+          "wind_loop"
+        ]
+      },
+      {
+        "name": "Drop the letters",
+        "about": "Let go over a mailbox to deliver",
+        "ids": [
+          "RULE.DROP.*",
+          "BAL.DROP.*"
+        ],
+        "assets": [
+          "mailbox",
+          "drop_ping"
+        ]
+      },
+      {
+        "name": "Dusk and the lighthouse",
+        "about": "The day ends; spend the coins",
+        "ids": [
+          "RULE.DUSK.*",
+          "BAL.SHOP.*"
+        ],
+        "assets": [
+          "lighthouse"
+        ],
+        "loop": false
+      }
+    ],
+    "service": {
+      "game": "paper-courier"
+    }
+  }
+}

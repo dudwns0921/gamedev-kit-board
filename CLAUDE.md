@@ -32,6 +32,8 @@ npm run build
 
 End to end: run it (README "Run it by hand"), point a sample game at it, `board.py push`, open the game in each theme and on a phone width.
 
+The pictures of the dashboard elsewhere (the kit's README, the landing page) are taken from `demo/` — made-up games, photographed by `demo/shots.mjs` in one go. After a change to what the pages look like, run it again (`demo/README.md`).
+
 ## Where it stands, and what is next
 
 Done: the dashboard of games (what waits across games) · one game drawn from data (overview · review · stages · assets), redrawn in place as a newer board arrives ·

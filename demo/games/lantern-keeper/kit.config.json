@@ -1,0 +1,22 @@
+{
+  "engine": "godot",
+  "board": {
+    "flow": [
+      {
+        "name": "Climb the stairs",
+        "about": "Carry the oil up the tower"
+      },
+      {
+        "name": "Keep the flame",
+        "about": "Trim the wick through the storm"
+      },
+      {
+        "name": "Ships pass",
+        "about": "Guide them past the rocks"
+      }
+    ],
+    "service": {
+      "game": "lantern-keeper"
+    }
+  }
+}
