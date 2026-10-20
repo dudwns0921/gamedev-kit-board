@@ -106,6 +106,8 @@ export type Board = {
   assets: { style: string; world: string; learned: string[]; sound: string; models: Model[]; loose: Model[]; sounds: (Item & { used?: Used })[] };
 };
 
+export type Active = { cycle: string; name: string; stage: string; line?: string; session: boolean; building: boolean; review: number };
+
 export type Summary = {
   game: string;
   name: string;
@@ -115,6 +117,9 @@ export type Summary = {
   /** pause: the cycle waits on the user (decisions asked, or time to play) and the game's conversation has grown long — a good moment to /clear it.
    *  context: that conversation's size in tokens, as the kit's context hook kept it. */
   now: { cycle: string; name: string; stage: string; line?: string; pause?: boolean; context?: number } | null;
+  /** Every cycle in hand, oldest first — more than one while several sessions each work on one (the kit's `cycle.py take`).
+   *  session: an open session works on it · building: its build has the turn · review: what of it waits on the user. Absent on a board from an older kit. */
+  active?: Active[];
   counts: { problems: number; not_made: number; placeholders: number; undecided: number; review: number; done?: number; old_style?: number };
   stages: { name: string; complete: number | null }[];
   /** Sent only to a dashboard on the same machine: where the game's board folder is, so answers can be put in its inbox. */
@@ -133,4 +138,16 @@ export function at(iso: string): string {
   const d = new Date(iso);
   const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   return d.toDateString() === new Date().toDateString() ? `at ${time}` : `${d.toLocaleDateString([], { month: "short", day: "numeric" })} ${time}`;
+}
+
+/** The cycles in hand: what the kit sent, or — from an older kit — the newest one. */
+export function inHand(s: Summary): Active[] {
+  if (s.active?.length) return s.active;
+  return s.now ? [{ cycle: s.now.cycle, name: s.now.name, stage: s.now.stage, line: s.now.line, session: false, building: false, review: s.counts.review }] : [];
+}
+
+/** "Cycle 14 · Spec", or with several in hand "Cycles 11 · 13 · 14". */
+export function handLabel(s: Summary): string {
+  const h = inHand(s);
+  return !h.length ? "No cycle yet" : h.length === 1 ? `Cycle ${h[0].cycle} · ${h[0].stage}` : `Cycles ${h.map((x) => x.cycle).join(" · ")}`;
 }

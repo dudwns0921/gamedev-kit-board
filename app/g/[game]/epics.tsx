@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useState, type ReactNode } from "react";
-import type { BacklogItem, Board, EpicTask, Stage, TaskDetail } from "@/lib/board";
+import type { Active, BacklogItem, Board, EpicTask, Stage, TaskDetail } from "@/lib/board";
 
 // The game laid out as epics: each stage of play is one (and Foundation, for what no stage owns), holding the tasks of every cycle and playtest that name it.
 // The epic cards stay on top, words only; the chosen one opens under all of them — its screens from play, then its cycles, in one row, and what is picked below it.
@@ -156,8 +156,8 @@ const STEPS = ["Goal", "Spec", "Design", "Plan", "Build", "Play"];
 const COLUMNS: [string, string][] = [["To do", " "], ["In hand", ">"], ["Blocked", "!"], ["Done", "x"]];
 
 /** One cycle as a board: its goal and where it stands on top, its tasks in four columns. Any cycle can be picked from the row above it. */
-export function Sprint({ b, sel, pick, open, waiting, review }: {
-  b: Board; sel: string; pick: (c: string) => void; open: OpenTask; waiting: number; review: () => void;
+export function Sprint({ b, sel, pick, open, waiting, review, hand = [] }: {
+  b: Board; sel: string; pick: (c: string) => void; open: OpenTask; waiting: number; review: () => void; hand?: Active[];
 }) {
   const c = b.cycles.find((x) => x.num === sel) ?? b.cycles[b.cycles.length - 1];
   if (!c) return <div className="empty">No cycle yet — <code>/gamedev-kit:cycle</code> starts one.</div>;
@@ -166,17 +166,23 @@ export function Sprint({ b, sel, pick, open, waiting, review }: {
   const list = (c.list ?? []).filter((t) => t.mark !== "-");
   const name = (t: { epic?: string; stages?: number[] }) => t.epic || "";
   const newest = c === b.cycles[b.cycles.length - 1];
+  const several = hand.length > 1;  // several sessions at once, each on its own cycle — each in hand is marked, and says what of it waits
+  const mine = hand.find((h) => h.cycle === c.num);
+  const wait = several ? mine?.review ?? 0 : newest ? waiting : 0;
   return (
     <>
       <div className="ep-cycles" role="group" aria-label="Cycles">
         {[...b.cycles].reverse().map((x) => (
           <button key={x.num} className={x.num === c.num ? "on" : ""} aria-pressed={x.num === c.num} onClick={() => pick(x.num)}>
             <b>Cycle {x.num}</b><small>{x.stage} · {x.tasks.done}/{x.tasks.done + x.tasks.open + x.tasks.blocked + (x.tasks.doing ?? 0)}</small>
+            {several && hand.some((h) => h.cycle === x.num)
+              ? <small>{hand.find((h) => h.cycle === x.num)?.building ? "in hand · building" : "in hand"}</small> : null}
           </button>
         ))}
       </div>
       <section className="card sec">
-        <span className="lab">Cycle {c.num} — {c.name}{c.start ? ` · started ${c.start}` : ""}</span>
+        <span className="lab">Cycle {c.num} — {c.name}{c.start ? ` · started ${c.start}` : ""}
+          {several && mine ? ` · ${mine.building ? "building now" : mine.session ? "a session is on it" : "in hand"}` : ""}</span>
         <div className="steps">
           {steps.map((k, i) => (
             <span key={k} className={`step${k === c.stage ? " on" : c.skipped?.includes(k) ? " skip" : c.stage === "Closed" || (at >= 0 && i < at) ? " past" : ""}`}>{k}</span>
@@ -185,7 +191,7 @@ export function Sprint({ b, sel, pick, open, waiting, review }: {
         <h1>{c.line || c.name}</h1>
         {c.goal && c.line ? <div className="small muted clamp">{c.goal}</div> : null}
         <Counts c={counts(list)} />
-        {newest && waiting ? <button className="btn primary ep-wait" onClick={review}>{waiting} waiting on you — Review →</button> : null}
+        {wait ? <button className="btn primary ep-wait" onClick={review}>{wait} waiting on you — Review →</button> : null}
       </section>
       <div className="ep-board">
         {COLUMNS.map(([label, m]) => {

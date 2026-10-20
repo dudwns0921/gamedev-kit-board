@@ -1,3 +1,4 @@
+import { handLabel, inHand } from "@/lib/board";
 import { ago, games, type Summary } from "@/lib/games";
 import { status } from "@/lib/inbox";
 import ThemePicker from "./theme-picker";
@@ -20,9 +21,11 @@ function Game({ s, session }: { s: Summary; session: keyof typeof SESSION | null
       <div className="head">
         <Ring p={s.complete ?? 0} />
         <div style={{ minWidth: 0 }}>
-          <span className="lab">{s.now ? `Cycle ${s.now.cycle} · ${s.now.stage}` : "No cycle yet"}</span>
+          <span className="lab">{handLabel(s)}</span>
           <h2>{s.name}</h2>
-          {s.now ? <div className="small muted">{s.now.name}</div> : null}
+          {inHand(s).length > 1
+            ? <div className="small muted">{inHand(s).map((h) => `${h.cycle} ${h.name} · ${h.stage}${h.building ? " · building" : ""}`).join("  /  ")}</div>
+            : s.now ? <div className="small muted">{s.now.name}</div> : null}
           {session ? <span className={`spill ${session}`} style={{ marginTop: 8 }}><i />{SESSION[session]}</span> : null}
         </div>
       </div>
@@ -75,7 +78,7 @@ export default async function Home() {
                     <a key={s.game} href={`/g/${s.game}?tab=review`}>
                       <span className="count">{s.counts.review}</span>
                       <b>{s.name}</b>
-                      <span className="small muted">{s.now ? `Cycle ${s.now.cycle} · ${s.now.stage}` : ""}</span>
+                      <span className="small muted">{s.now ? handLabel(s) : ""}</span>
                       <span className="small muted" style={{ marginLeft: "auto" }}>Review →</span>
                     </a>
                   ))}

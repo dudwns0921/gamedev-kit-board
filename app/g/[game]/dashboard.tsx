@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { at, type Act, type Board, type Inbox, type Item, type St, type Summary } from "@/lib/board";
+import { at, handLabel, inHand, type Act, type Board, type Inbox, type Item, type St, type Summary } from "@/lib/board";
 import ThemePicker from "../../theme-picker";
 import { type Run } from "./not-needed";
 import ReviewTab, { type Zoom } from "./review";
@@ -132,7 +132,7 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
         <div className="in">
           <a className="btn ghost" href="/" aria-label="All games">←</a>
           <div className="title">
-            <span className="lab">{s.now ? `Cycle ${s.now.cycle} · ${s.now.stage}` : "No cycle yet"}</span>
+            <span className="lab">{handLabel(s)}</span>
             <b>{s.name}</b>
           </div>
           <div className="right">
@@ -149,7 +149,7 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
         <nav className="tabs" role="tablist">
           {TABS.map((t) => (
             <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? "on" : ""} onClick={() => go(t)}>
-              {t === "cycle" && s.now ? `Cycle ${s.now.cycle}` : t[0].toUpperCase() + t.slice(1)}
+              {t === "cycle" && s.now ? (inHand(s).length > 1 ? "Cycles" : `Cycle ${s.now.cycle}`) : t[0].toUpperCase() + t.slice(1)}
               {t === "review" && counts.review ? <span className="count">{counts.review}</span> : null}
               {t === "backlog" && waitingLater ? <span className="count calm">{waitingLater}</span> : null}
             </button>
@@ -164,7 +164,7 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
         ) : null}
 
         {tab === "epics" ? <Epics b={b} file={file} open={openTask} sel={stage} pick={setStage} zoom={z} /> : null}
-        {tab === "cycle" ? <Sprint b={b} sel={cyc ?? b.cycles[b.cycles.length - 1]?.num ?? ""} pick={setCyc} open={openTask} waiting={counts.review} review={() => go("review")} /> : null}
+        {tab === "cycle" ? <Sprint b={b} sel={cyc ?? b.cycles[b.cycles.length - 1]?.num ?? ""} pick={setCyc} open={openTask} waiting={counts.review} review={() => go("review")} hand={inHand(s)} /> : null}
         {tab === "backlog" ? <Backlog b={b} /> : null}
         {tab === "review" ? <ReviewTab game={s.game} box={box} items={b.review} file={file} zoom={z} run={run} /> : null}
         {tab === "assets" ? <Assets b={b} file={file} zoom={z} go={go} /> : null}
