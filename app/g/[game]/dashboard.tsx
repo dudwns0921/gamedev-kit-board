@@ -166,8 +166,8 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
             A good moment to type <code>/clear</code> then <code>/gamedev-kit:cycle next</code> in the session: same window, still connected to this dashboard.</div>
         ) : null}
 
-        {tab === "now" ? <Now s={s} b={b} open={openTask} review={() => go("review")} /> : null}
-        {tab === "epics" ? <Epics b={b} file={file} open={openTask} sel={stage} pick={setStage} zoom={z} /> : null}
+        {tab === "now" ? <Now s={s} b={b} open={openTask} review={() => go("review")} cycle={(n) => go("cycle", null, n)} /> : null}
+        {tab === "epics" ? <Epics b={b} file={file} open={openTask} sel={stage} pick={setStage} zoom={z} under={task !== null} /> : null}
         {tab === "cycle" ? <Sprint b={b} sel={cyc ?? b.cycles[b.cycles.length - 1]?.num ?? ""} pick={setCyc} open={openTask} waiting={counts.review} review={() => go("review")} hand={inHand(s)} /> : null}
         {tab === "play" ? <Plays b={b} file={file} zoom={z} at={playAt} pick={setPlayAt} /> : null}
         {tab === "backlog" ? <Backlog b={b} /> : null}

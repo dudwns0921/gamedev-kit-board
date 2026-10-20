@@ -396,7 +396,7 @@ table.tbl td:last-child { white-space: nowrap; }
 /* stage detail — function and assets, each a % */
 table.tbl.parts2 td.pc { width: 200px; }
 
-/* epics — the cards stay on top, the chosen epic opens under them; a task opens in a panel from the right */
+/* epics — the chosen epic opens in a panel from the right; a task opens in its own panel, over the epic's */
 .ep-done { background: var(--done); } .ep-doing { background: var(--accent); } .ep-open { background: var(--none); } .ep-blocked { background: var(--bad); }
 .ep-dropped { background: transparent; border: 1px solid var(--none); }
 .ep-cycles { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
@@ -421,6 +421,8 @@ table.tbl.parts2 td.pc { width: 200px; }
 .ep-bl code { color: color-mix(in srgb, var(--temp) 75%, var(--tx)); flex: none; }
 .ep-bl span { min-width: 0; overflow-wrap: anywhere; display: flex; flex-direction: column; gap: 2px; }
 .ep-scrim { position: fixed; inset: 0; z-index: 40; background: rgba(15,18,22,.35); }
+.ep-scrim.ep-under { z-index: 38; }
+.ep-panel.ep-epic { z-index: 39; }
 .ep-panel { position: fixed; top: 0; right: 0; bottom: 0; z-index: 41; width: min(560px, 100%); background: var(--surface); border-left: 1px solid var(--border);
   box-shadow: 0 10px 30px rgba(0,0,0,.18); display: flex; flex-direction: column; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
 .ep-top { display: flex; gap: 10px; align-items: center; padding: 10px 12px 10px 16px; border-bottom: 1px solid var(--border); }
@@ -469,6 +471,9 @@ table.tbl.parts2 td.pc { width: 200px; }
 .now-wait:not(:disabled) { cursor: pointer; }
 .now-wait:not(:disabled) b { color: var(--accent); }
 .now-cycle h2 { margin: 4px 0 8px; }
+.now-open { display: block; width: 100%; text-align: left; border: 0; background: none; padding: 0; color: inherit; font: inherit; cursor: pointer; }
+.now-open .now-go { margin-left: 8px; color: var(--tx3); font-weight: 400; }
+.now-open:hover h2, .now-open:hover .now-go { color: var(--accent); }
 .now-who { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
 .now-who button.chip { cursor: pointer; border: 0; font: inherit; }
 .now-tasks { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; }

@@ -5,7 +5,7 @@ import { inHand, type Board, type Summary } from "@/lib/board";
 import { Row, type OpenTask } from "./epics";
 
 // What is in motion now: each cycle in hand — who is on it (a worker the CEO runs, or a window of the user's) and for how long,
-// the tasks being built, what of it waits on the user — then whose build has the turn, and how the last workers ended.
+// the tasks being built, what of it waits on the user — then whose build has the turn, and how the last workers ended. A cycle's head opens it in the Cycle tab.
 // The page is told when a newer board arrives; only the "for how long" is counted here, on the minute.
 
 const STOP: Record<string, [string, string]> = {
@@ -20,7 +20,7 @@ function since(at: string, now: number) {
   return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`;
 }
 
-export function Now({ s, b, open, review }: { s: Summary; b: Board; open: OpenTask; review: () => void }) {
+export function Now({ s, b, open, review, cycle }: { s: Summary; b: Board; open: OpenTask; review: () => void; cycle: (num: string) => void }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 60000);
@@ -50,8 +50,10 @@ export function Now({ s, b, open, review }: { s: Summary; b: Board; open: OpenTa
         const done = all.filter((t) => t.mark === "x").length;
         return (
           <section key={h.cycle} className="card sec now-cycle">
-            <span className="lab">Cycle {h.cycle} — {h.name} · {h.stage}{work?.build && Number(work.build.cycle) === n ? " · building now" : ""}</span>
-            <h2>{h.line || h.name}</h2>
+            <button className="now-open" onClick={() => cycle(c?.num ?? String(h.cycle))} aria-label={`Open cycle ${h.cycle}`}>
+              <span className="lab">Cycle {h.cycle} — {h.name} · {h.stage}{work?.build && Number(work.build.cycle) === n ? " · building now" : ""}</span>
+              <h2>{h.line || h.name}<span className="now-go" aria-hidden>→</span></h2>
+            </button>
             <div className="now-who">
               {w ? <span className="chip acc"><i className="dot ep-doing" /> worker — {w.what} · {since(w.started, now)}</span>
                 : who?.by === "window" ? <span className="chip">your window is on it</span>

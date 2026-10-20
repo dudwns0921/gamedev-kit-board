@@ -5,7 +5,8 @@ import type { Active, BacklogItem, Board, EpicTask, Stage, TaskDetail } from "@/
 import { runOf } from "./plays";
 
 // The game laid out as epics: each stage of play is one (and Foundation, for what no stage owns), holding the tasks of every cycle and playtest that name it.
-// The epic cards stay on top, words only; the chosen one opens under all of them — its cycles, in one row, and what is picked below it.
+// The epic cards, words only; the chosen one opens in a panel from the right, as a task does — its cycles in one row, and what is picked below it.
+// A task picked there opens in its own panel over it; closing that goes back to the epic.
 // Screens of the game are in the Play tab only (the play route's runs).
 // A task opens in a panel from the right, with the lines written under it; which of those the panel shows is the viewer's choice, kept in this browser.
 
@@ -70,11 +71,18 @@ export function Row({ t, open, epic }: { t: EpicTask | { key: string; kind: stri
 
 const waiting = (b: Board, st: Stage) => (b.backlog ?? []).filter((x) => x.mark === " " && x.stage === st.i);
 
-export function Epics({ b, file, open, sel, pick: choose, zoom }: {
+export function Epics({ b, file, open, sel, pick: choose, zoom, under = false }: {
   b: Board; file: (p: string) => string; open: OpenTask; sel: number | null; pick: (i: number | null) => void; zoom: (src: string, label: string) => void;
+  under?: boolean;  // a task's panel is open over this one — Escape is that panel's
 }) {
   const [group, setGroup] = useState<string | null>(null);
-  const setSel = (i: number | null) => { choose(i); if (i !== null) requestAnimationFrame(() => document.getElementById("epic-detail")?.scrollIntoView({ block: "nearest" })); };
+  const setSel = choose;
+  useEffect(() => {
+    if (sel === null || under) return;
+    const off = (ev: KeyboardEvent) => ev.key === "Escape" && choose(null);
+    addEventListener("keydown", off);
+    return () => removeEventListener("keydown", off);
+  }, [sel, under, choose]);
   const epics = b.stages.filter((st) => st.epic && (!st.common || st.epic.tasks.length));
   if (!epics.length) return <div className="empty">This board came from a kit without epics — update the plugin in the game and let it redraw.</div>;
   const st = epics.find((x) => x.i === sel);
@@ -117,8 +125,15 @@ export function Epics({ b, file, open, sel, pick: choose, zoom }: {
         })}
       </div>
       {st ? (
-        <section className="card sec" id="epic-detail">
-          <div className="sec-h"><span className="lab">Epic</span><h2>{st.name}</h2><Counts c={counts(live(st.epic!.tasks))} /></div>
+        <>
+        <div className="ep-scrim ep-under" onClick={() => setSel(null)} />
+        <aside className="ep-panel ep-epic" role="dialog" aria-label={st.name}>
+          <div className="ep-top"><span className="lab">{st.foundation ? "Foundation" : st.common ? "To sort" : "Epic"}</span>
+            <button className="btn ghost" onClick={() => setSel(null)} aria-label="Close">×</button></div>
+          <div className="ep-body">
+          <h2>{st.name}</h2>
+          {st.about ? <div className="small muted">{st.about}</div> : null}
+          <Counts c={counts(live(st.epic!.tasks))} />
           {groups.length ? (
             <div className="ep-cycles" role="group" aria-label="Cycles">
               {groups.map((g) => {
@@ -138,7 +153,9 @@ export function Epics({ b, file, open, sel, pick: choose, zoom }: {
                 : pick.tasks!.map((t) => <Row key={t.key} t={t} open={open} />)}
             </div>
           ) : null}
-        </section>
+          </div>
+        </aside>
+        </>
       ) : null}
     </>
   );
