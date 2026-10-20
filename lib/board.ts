@@ -89,6 +89,13 @@ export type Task = { num: string; key?: string; epic?: string; title: string; ma
 /** An asset a cycle listed: what it is, how far it is, the stage it is in, and the tasks that name it. */
 export type CycleAsset = { name: string; kind: string; what: string; st: St; stage: number | null; img: string; audio: string; tasks: string[] };
 
+/** A stop of the play route (board.play.route in the game's kit.config.json): the stage of play it is in, and what the player sees there. */
+export type Stop = { id: string; stage: string; what: string };
+
+/** One run of the play route, shot at the end of a build (the kit's `board.py play`). cycle · playtest: the build it followed.
+ *  A stop's img is its picture — "" when the run did not shoot it. */
+export type PlayRun = { id: string; at: string; what: string; cycle: string; playtest: string; commit: string; stops: (Stop & { img: string })[] };
+
 export type Board = {
   lanes: { key: string; label: string }[];
   stages: Stage[];
@@ -101,6 +108,9 @@ export type Board = {
     list?: Task[]; stages?: number[]; shots?: { stage: string; img: string }[]; assets?: CycleAsset[];
     tasks: { done: number; open: number; blocked: number; doing?: number }; decisions: { open: number; all: number } }[];
   review: Review[];
+  /** The play route and its runs, newest first — the Play tab, the one place screens of the game are seen. Absent on a board from an older kit. */
+  route?: Stop[];
+  plays?: PlayRun[];
   backlog?: BacklogItem[];
   tasks?: Record<string, TaskDetail>;
   assets: { style: string; world: string; learned: string[]; sound: string; models: Model[]; loose: Model[]; sounds: (Item & { used?: Used })[] };

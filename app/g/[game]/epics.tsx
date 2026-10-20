@@ -2,9 +2,11 @@
 
 import { Fragment, useEffect, useState, type ReactNode } from "react";
 import type { Active, BacklogItem, Board, EpicTask, Stage, TaskDetail } from "@/lib/board";
+import { runOf } from "./plays";
 
 // The game laid out as epics: each stage of play is one (and Foundation, for what no stage owns), holding the tasks of every cycle and playtest that name it.
-// The epic cards stay on top, words only; the chosen one opens under all of them — its screens from play, then its cycles, in one row, and what is picked below it.
+// The epic cards stay on top, words only; the chosen one opens under all of them — its cycles, in one row, and what is picked below it.
+// Screens of the game are in the Play tab only (the play route's runs).
 // A task opens in a panel from the right, with the lines written under it; which of those the panel shows is the viewer's choice, kept in this browser.
 
 export type OpenTask = (key: string) => void;
@@ -77,10 +79,9 @@ export function Epics({ b, file, open, sel, pick: choose, zoom }: {
   if (!epics.length) return <div className="empty">This board came from a kit without epics — update the plugin in the game and let it redraw.</div>;
   const st = epics.find((x) => x.i === sel);
   const live = (ts: EpicTask[]) => ts.filter((t) => t.mark !== "-");
-  let groups: { id: string; label: string; sub: string; tasks?: EpicTask[]; backlog?: BacklogItem[]; screens?: NonNullable<Stage["screens"]> }[] = [];
+  let groups: { id: string; label: string; sub: string; tasks?: EpicTask[]; backlog?: BacklogItem[] }[] = [];
   if (st?.epic) {
     const ts = live(st.epic.tasks);
-    if (st.screens?.length) groups.push({ id: "screens", label: "Screens", sub: `${st.screens.length} from play`, screens: st.screens });
     for (const c of [...b.cycles].reverse()) {
       const here = ts.filter((t) => t.kind === "cycle" && t.cycle === c.num);
       if (here.length) groups.push({ id: `c${c.num}`, label: `Cycle ${c.num}`, sub: c.name, tasks: here });
@@ -133,16 +134,7 @@ export function Epics({ b, file, open, sel, pick: choose, zoom }: {
           {pick ? (
             <div className="ep-list">
               <span className="lab">{pick.label} — {pick.sub}</span>
-              {pick.screens ? (
-                <div className="ep-shots">
-                  {pick.screens.map((x) => (
-                    <button key={x.img} className="ep-shot" onClick={() => zoom(file(x.img), `${st!.name} · cycle ${x.cycle}`)} aria-label={`${st!.name}, cycle ${x.cycle}`}>
-                      <span className="im" style={{ backgroundImage: `url(${file(x.img)})` }} />
-                      <small>Cycle {x.cycle} — {x.name}</small>
-                    </button>
-                  ))}
-                </div>
-              ) : pick.backlog ? pick.backlog.map((x) => <div key={x.num} className="ep-bl"><code>{x.num}</code><span>{x.text}</span></div>)
+              {pick.backlog ? pick.backlog.map((x) => <div key={x.num} className="ep-bl"><code>{x.num}</code><span>{x.text}</span></div>)
                 : pick.tasks!.map((t) => <Row key={t.key} t={t} open={open} />)}
             </div>
           ) : null}
@@ -236,7 +228,7 @@ export function Backlog({ b }: { b: Board }) {
 }
 
 // A task, for the user: what it is, how the game will change, what changed (or why it is stuck), and the GDD ids it touches — nothing written for the implementer.
-export function TaskPanel({ b, k, close }: { b: Board; k: string; close: () => void }) {
+export function TaskPanel({ b, k, close, show }: { b: Board; k: string; close: () => void; show?: (run: string, stage: string | null) => void }) {
   useEffect(() => {
     const off = (ev: KeyboardEvent) => ev.key === "Escape" && close();
     addEventListener("keydown", off);
@@ -250,6 +242,7 @@ export function TaskPanel({ b, k, close }: { b: Board; k: string; close: () => v
   const [cls, word] = MARK[t.mark] ?? MARK[" "];
   const what = field("What"), change = field("Change"), done = field("Done"), stuck = field("Blocked") || field("Dropped");
   const ids = [...new Set(field("GDD").match(/[A-Z]+(?:\.[A-Z0-9_]+)+/g) ?? [])];
+  const after = t.mark === "x" ? runOf(b, t.kind, t.cycle, t.doc) : undefined;  // the screens after the build it was done in — in the Play tab
   return (
     <>
       <div className="ep-scrim" onClick={close} />
@@ -263,6 +256,11 @@ export function TaskPanel({ b, k, close }: { b: Board; k: string; close: () => v
           {done ? <div className="ep-sec"><span className="lab">What changed</span><div className="v"><Md text={done} /></div></div> : null}
           {stuck ? <div className="ep-sec bad"><span className="lab">{field("Blocked") ? "Blocked" : "Dropped"}</span><div className="v"><Md text={stuck} /></div></div> : null}
           {!what && !change && !done ? <div className="small muted">Planned before tasks said in plain words what they are.</div> : null}
+          {after && show ? (
+            <div className="ep-sec"><span className="lab">Screens after it</span>
+              <button className="btn ghost" onClick={() => show(after.id, after.stops.some((s) => s.stage === st?.name) ? st!.name : null)}>{after.what} · {after.at} — Play →</button>
+            </div>
+          ) : null}
           {ids.length ? <div className="ep-sec"><span className="lab">GDD</span><div className="chips">{ids.map((x) => <code key={x} className="tchip">{x}</code>)}</div></div> : null}
         </div>
       </aside>

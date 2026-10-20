@@ -445,3 +445,18 @@ table.tbl.parts2 td.pc { width: 200px; }
 .ep-shot .im { display: block; aspect-ratio: 16 / 9; border-radius: 10px; border: 1px solid var(--border); background: var(--surface2) center / cover no-repeat; }
 .ep-shot:hover .im { border-color: var(--accent); }
 .ep-shot small { color: var(--tx3); font-size: 12px; }
+
+/* Play tab — the play route's runs */
+.pl-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); align-items: start; }
+.pl-pairs { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(520px, 100%), 1fr)); align-items: start; }
+.pl-one { display: grid; }
+.pl-shot { display: flex; flex-direction: column; gap: 6px; width: 100%; border: 0; padding: 0; background: none; text-align: left; cursor: zoom-in; color: inherit; font: inherit; }
+.pl-shot img { display: block; width: 100%; height: auto; max-height: 70vh; object-fit: contain; border-radius: 10px; border: 1px solid var(--border); background: var(--surface2); }
+.pl-shot:hover img { border-color: var(--accent); }
+.pl-shot small { color: var(--tx3); font-size: 12px; }
+.pl-stop { display: flex; flex-direction: column; gap: 6px; }
+.pl-two { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; align-items: start; }
+.pl-what { display: flex; justify-content: space-between; gap: 8px; border: 0; padding: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.pl-what small { color: var(--tx3); font-size: 12px; white-space: nowrap; }
+.pl-what:hover small { color: var(--accent); }
+.pl-none { min-height: 120px; border-radius: 10px; border: 1px dashed var(--border); display: grid; place-items: center; color: var(--tx3); font-size: 12px; }

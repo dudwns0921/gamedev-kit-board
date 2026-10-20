@@ -7,11 +7,12 @@ import { type Run } from "./not-needed";
 import ReviewTab, { type Zoom } from "./review";
 import { SessionPill, SessionToasts } from "./session";
 import { Backlog, Epics, Sprint, TaskPanel, type OpenTask } from "./epics";
+import { Plays, type PlayAt } from "./plays";
 
 // One game, drawn from the data the kit sends. The page holds one connection (/g/<game>/events) and is told the moment a newer board
 // arrives or the game's inbox changes — it redraws in place, the open tab and stage stay. Nothing asks on a clock.
 // "Refresh" reads both once more and reconnects — for when the connection dropped (a sleeping laptop, a phone on the tunnel).
-const TABS = ["epics", "cycle", "backlog", "review", "assets"] as const;
+const TABS = ["epics", "cycle", "play", "backlog", "review", "assets"] as const;
 const WAS: Record<string, Tab> = { cycles: "cycle", overview: "epics", stages: "epics" };  // a link from before the tabs became epics · cycle · backlog
 type Tab = (typeof TABS)[number];
 const NONE: Inbox = { sent: [], taken: [], relayed: [], untaken: false };
@@ -28,6 +29,7 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
   const [cyc, setCyc] = useState<string | null>(null);  // the cycle open in the Cycle tab — the newest when none was picked
   const [zoom, setZoom] = useState<{ src: string; label: string } | null>(null);
   const [task, setTask] = useState<string | null>(null);  // the task open in the side panel, by its key
+  const [playAt, setPlayAt] = useState<PlayAt>({ run: null, stage: null });  // the run open in the Play tab (the newest when none was picked), and a stage to show
   const b = s.board as Board;
   const openTask: OpenTask = useCallback((k: string) => setTask(k), []);
   const closeTask = useCallback(() => setTask(null), []);
@@ -165,6 +167,7 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
 
         {tab === "epics" ? <Epics b={b} file={file} open={openTask} sel={stage} pick={setStage} zoom={z} /> : null}
         {tab === "cycle" ? <Sprint b={b} sel={cyc ?? b.cycles[b.cycles.length - 1]?.num ?? ""} pick={setCyc} open={openTask} waiting={counts.review} review={() => go("review")} hand={inHand(s)} /> : null}
+        {tab === "play" ? <Plays b={b} file={file} zoom={z} at={playAt} pick={setPlayAt} /> : null}
         {tab === "backlog" ? <Backlog b={b} /> : null}
         {tab === "review" ? <ReviewTab game={s.game} box={box} items={b.review} file={file} zoom={z} run={run} /> : null}
         {tab === "assets" ? <Assets b={b} file={file} zoom={z} go={go} /> : null}
@@ -172,7 +175,7 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
       </main>
       </div>
       <SessionToasts box={box} />
-      {task ? <TaskPanel b={b} k={task} close={closeTask} /> : null}
+      {task ? <TaskPanel b={b} k={task} close={closeTask} show={(run, stage) => { setPlayAt({ run, stage }); setTask(null); go("play"); }} /> : null}
       {zoom ? (
         <div className="zoombox" onClick={() => setZoom(null)} role="dialog" aria-label={zoom.label}>
           <img src={zoom.src} alt="" />
@@ -239,7 +242,6 @@ function Assets({ b, file, zoom, go }: { b: Board; file: (p: string) => string; 
                   <tr key={`s${st.i}`} className="group stagegroup">
                     <td colSpan={6}>
                       <button className="mini" onClick={() => go("epics", st.i)}>
-                        {st.image ? <span className="minishot" style={{ backgroundImage: `url(${file(st.image)})` }} /> : null}
                         <b>{st.common ? "In no stage yet" : `${String(st.i + 1).padStart(2, "0")} ${st.name}`}</b>
                       </button>
                       <span className="muted small">Looks {tally(looks).done}/{looks.length} · Sound {tally(sounds).done}/{sounds.length}</span>
