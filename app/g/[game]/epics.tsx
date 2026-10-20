@@ -55,7 +55,7 @@ function Md({ text }: { text: string }) {
   return <>{out}</>;
 }
 
-function Row({ t, open, epic }: { t: EpicTask | { key: string; kind: string; title: string; mark: string }; open: OpenTask; epic?: string }) {
+export function Row({ t, open, epic }: { t: EpicTask | { key: string; kind: string; title: string; mark: string }; open: OpenTask; epic?: string }) {
   const [cls, word] = MARK[t.mark] ?? MARK[" "];
   return (
     <button className="ep-row" onClick={() => open(t.key)}>

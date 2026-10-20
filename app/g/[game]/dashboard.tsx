@@ -8,11 +8,12 @@ import ReviewTab, { type Zoom } from "./review";
 import { SessionPill, SessionToasts } from "./session";
 import { Backlog, Epics, Sprint, TaskPanel, type OpenTask } from "./epics";
 import { Plays, type PlayAt } from "./plays";
+import { Now } from "./now";
 
 // One game, drawn from the data the kit sends. The page holds one connection (/g/<game>/events) and is told the moment a newer board
 // arrives or the game's inbox changes — it redraws in place, the open tab and stage stay. Nothing asks on a clock.
 // "Refresh" reads both once more and reconnects — for when the connection dropped (a sleeping laptop, a phone on the tunnel).
-const TABS = ["epics", "cycle", "play", "backlog", "review", "assets"] as const;
+const TABS = ["now", "epics", "cycle", "play", "backlog", "review", "assets"] as const;
 const WAS: Record<string, Tab> = { cycles: "cycle", overview: "epics", stages: "epics" };  // a link from before the tabs became epics · cycle · backlog
 type Tab = (typeof TABS)[number];
 const NONE: Inbox = { sent: [], taken: [], relayed: [], untaken: false };
@@ -24,7 +25,7 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
   const [live, setLive] = useState(false);
   const [busy, setBusy] = useState(false);
   const [link, setLink] = useState(0);
-  const [tab, setTab] = useState<Tab>((TABS as readonly string[]).includes(firstTab) ? (firstTab as Tab) : WAS[firstTab] ?? "epics");
+  const [tab, setTab] = useState<Tab>((TABS as readonly string[]).includes(firstTab) ? (firstTab as Tab) : WAS[firstTab] ?? "now");
   const [stage, setStage] = useState<number | null>(null);
   const [cyc, setCyc] = useState<string | null>(null);  // the cycle open in the Cycle tab — the newest when none was picked
   const [zoom, setZoom] = useState<{ src: string; label: string } | null>(null);
@@ -165,6 +166,7 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
             A good moment to type <code>/clear</code> then <code>/gamedev-kit:cycle next</code> in the session: same window, still connected to this dashboard.</div>
         ) : null}
 
+        {tab === "now" ? <Now s={s} b={b} open={openTask} review={() => go("review")} /> : null}
         {tab === "epics" ? <Epics b={b} file={file} open={openTask} sel={stage} pick={setStage} zoom={z} /> : null}
         {tab === "cycle" ? <Sprint b={b} sel={cyc ?? b.cycles[b.cycles.length - 1]?.num ?? ""} pick={setCyc} open={openTask} waiting={counts.review} review={() => go("review")} hand={inHand(s)} /> : null}
         {tab === "play" ? <Plays b={b} file={file} zoom={z} at={playAt} pick={setPlayAt} /> : null}

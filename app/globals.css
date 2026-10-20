@@ -460,3 +460,18 @@ table.tbl.parts2 td.pc { width: 200px; }
 .pl-what small { color: var(--tx3); font-size: 12px; white-space: nowrap; }
 .pl-what:hover small { color: var(--accent); }
 .pl-none { min-height: 120px; border-radius: 10px; border: 1px dashed var(--border); display: grid; place-items: center; color: var(--tx3); font-size: 12px; }
+
+/* Now tab — what is in motion */
+.now-head { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); }
+.now-head > div, .now-wait { display: flex; flex-direction: column; gap: 2px; text-align: left; border: 0; background: none; padding: 0; color: inherit; font: inherit; }
+.now-head b { font-size: 26px; line-height: 1.2; }
+.now-head small { color: var(--tx3); font-size: 12px; }
+.now-wait:not(:disabled) { cursor: pointer; }
+.now-wait:not(:disabled) b { color: var(--accent); }
+.now-cycle h2 { margin: 4px 0 8px; }
+.now-who { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.now-who button.chip { cursor: pointer; border: 0; font: inherit; }
+.now-tasks { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; }
+.now-log { display: flex; flex-direction: column; gap: 8px; }
+.now-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.now-line .t { flex: 1 1 220px; min-width: 0; }

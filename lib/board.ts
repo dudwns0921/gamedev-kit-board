@@ -118,6 +118,15 @@ export type Board = {
 
 export type Active = { cycle: string; name: string; stage: string; line?: string; session: boolean; building: boolean; review: number };
 
+/** What is in motion — the Now tab. workers: the CEO's headless runs going now (the kit's ceo skill) · ended: how the last ones ended, newest first
+ *  (stop: decisions · turn · play · blocked · done — "" when one ran out) · held: who works on each cycle · build: whose build has the turn. */
+export type Work = {
+  workers: { cycle: number; kind: string; what: string; started: string }[];
+  ended: { cycle: number; kind: string; started: string; ended: string; stop: string; said: string; cost: number | "" }[];
+  held: { cycle: string; by: "worker" | "window" }[];
+  build: { cycle: string | null; what: string; at: string } | null;
+};
+
 export type Summary = {
   game: string;
   name: string;
@@ -130,6 +139,8 @@ export type Summary = {
   /** Every cycle in hand, oldest first — more than one while several sessions each work on one (the kit's `cycle.py take`).
    *  session: an open session works on it · building: its build has the turn · review: what of it waits on the user. Absent on a board from an older kit. */
   active?: Active[];
+  /** Absent on a board from an older kit. */
+  work?: Work;
   counts: { problems: number; not_made: number; placeholders: number; undecided: number; review: number; done?: number; old_style?: number };
   stages: { name: string; complete: number | null }[];
   /** Sent only to a dashboard on the same machine: where the game's board folder is, so answers can be put in its inbox. */
