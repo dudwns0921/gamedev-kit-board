@@ -63,6 +63,36 @@
     ],
     "service": {
       "game": "paper-courier"
+    },
+    "play": {
+      "run": "npm run play-route -- {out}",
+      "route": [
+        {
+          "id": "post-office",
+          "stage": "Morning at the post office",
+          "what": "the counter and the day's bag"
+        },
+        {
+          "id": "take-off",
+          "stage": "Take off",
+          "what": "the plane leaving the first island"
+        },
+        {
+          "id": "islands",
+          "stage": "Over the islands",
+          "what": "the route from above"
+        },
+        {
+          "id": "drop",
+          "stage": "Drop the letters",
+          "what": "a letter over a mailbox"
+        },
+        {
+          "id": "dusk",
+          "stage": "Dusk and the lighthouse",
+          "what": "the beam pointing home"
+        }
+      ]
     }
   }
 }

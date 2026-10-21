@@ -1,0 +1,40 @@
+{
+ "at": "2026-01-18 11:05",
+ "what": "Playtest first-route",
+ "cycle": "",
+ "playtest": "first-route.md",
+ "commit": "c01f4a8",
+ "code": 0,
+ "stops": [
+  {
+   "id": "post-office",
+   "stage": "Morning at the post office",
+   "what": "the counter and the day's bag",
+   "file": "post-office.jpg"
+  },
+  {
+   "id": "take-off",
+   "stage": "Take off",
+   "what": "the plane leaving the first island",
+   "file": "take-off.jpg"
+  },
+  {
+   "id": "islands",
+   "stage": "Over the islands",
+   "what": "the route from above",
+   "file": "islands.jpg"
+  },
+  {
+   "id": "drop",
+   "stage": "Drop the letters",
+   "what": "a letter over a mailbox",
+   "file": "drop.jpg"
+  },
+  {
+   "id": "dusk",
+   "stage": "Dusk and the lighthouse",
+   "what": "the beam pointing home",
+   "file": ""
+  }
+ ]
+}
