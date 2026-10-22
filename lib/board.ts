@@ -118,8 +118,8 @@ export type Board = {
   route?: Stop[];
   plays?: PlayRun[];
   backlog?: BacklogItem[];
-  /** The game's bible (the kit's `bible`): pages the user keeps coming back to, as written — pictures as `![caption](file)`. Absent from an older kit. */
-  bible?: { name: string; title: string; text: string }[];
+  /** The game's bible (the kit's `bible`): the pictures the user keeps coming back to, by their path in its docs/bible/ — sent whole. Absent from an older kit. */
+  bible?: { name: string; src: string }[];
   tasks?: Record<string, TaskDetail>;
   assets: { style: string; world: string; learned: string[]; sound: string; models: Model[]; loose: Model[]; sounds: (Item & { used?: Used })[] };
 };
