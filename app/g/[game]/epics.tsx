@@ -73,11 +73,10 @@ export function Row({ t, open, epic }: { t: EpicTask | { key: string; kind: stri
 const assetLine = (a: LeftAssets) => [[a.temp, "placeholder", "placeholders"], [a.none, "not made", "not made"], [a.bad, "with a problem", "with a problem"]]
   .filter(([n]) => n).map(([n, one, many]) => `${n} ${n === 1 ? one : many}`).join(" · ");
 
-/** Where an epic stands, in one line under its count: the cycles that have its tasks in hand, what is blocked, what is undecided. */
+/** Where an epic stands, in one line under its count: what is blocked, what is undecided — the epic's own, never which cycle holds it. */
 const standing = (st: Stage) => {
   const l = st.left!;
-  return [l.cycles.length ? `In ${l.cycles.map((c) => `C${c}`).join(" · ")}` : "", l.blocked ? `${l.blocked} blocked` : "", st.open.length ? `${st.open.length} undecided` : ""]
-    .filter(Boolean).join(" · ");
+  return [l.blocked ? `${l.blocked} blocked` : "", st.open.length ? `${st.open.length} undecided` : ""].filter(Boolean).join(" · ");
 };
 
 const waiting = (b: Board, st: Stage) => (b.backlog ?? []).filter((x) => x.mark === " " && x.stage === st.i);
