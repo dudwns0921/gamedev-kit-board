@@ -69,8 +69,8 @@ export function Row({ t, open, epic }: { t: EpicTask | { key: string; kind: stri
   );
 }
 
-/** One kind of asset not final, in words: "Art — 74 placeholders · 13 not made". */
-const assetLine = (a: LeftAssets) => `${a.label} — ` + [[a.temp, "placeholder", "placeholders"], [a.none, "not made", "not made"], [a.bad, "with a problem", "with a problem"]]
+/** One kind of asset not final, in words — its kind is the line's tag: "74 placeholders · 13 not made". */
+const assetLine = (a: LeftAssets) => [[a.temp, "placeholder", "placeholders"], [a.none, "not made", "not made"], [a.bad, "with a problem", "with a problem"]]
   .filter(([n]) => n).map(([n, one, many]) => `${n} ${n === 1 ? one : many}`).join(" · ");
 
 /** Where an epic stands, in one line under its count: the cycles that have its tasks in hand, what is blocked, what is undecided. */
