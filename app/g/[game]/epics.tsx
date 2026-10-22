@@ -73,12 +73,6 @@ export function Row({ t, open, epic }: { t: EpicTask | { key: string; kind: stri
 const assetLine = (a: LeftAssets) => [[a.temp, "placeholder", "placeholders"], [a.none, "not made", "not made"], [a.bad, "with a problem", "with a problem"]]
   .filter(([n]) => n).map(([n, one, many]) => `${n} ${n === 1 ? one : many}`).join(" · ");
 
-/** Where an epic stands, in one line under its count: what is blocked, what is undecided — the epic's own, never which cycle holds it. */
-const standing = (st: Stage) => {
-  const l = st.left!;
-  return [l.blocked ? `${l.blocked} blocked` : "", st.open.length ? `${st.open.length} undecided` : ""].filter(Boolean).join(" · ");
-};
-
 const waiting = (b: Board, st: Stage) => (b.backlog ?? []).filter((x) => x.mark === " " && x.stage === st.i);
 
 export function Epics({ b, file, open, sel, pick: choose, zoom, under = false }: {
@@ -126,7 +120,6 @@ export function Epics({ b, file, open, sel, pick: choose, zoom, under = false }:
                 <>
                   <div className={`ep-left${x.left.count ? "" : " done"}`}>{x.left.count ? <><b>{x.left.count}</b> left</> : <b>✓ Done</b>}
                     <span className="ep-did">{c.done} task{c.done === 1 ? "" : "s"} done</span></div>
-                  {standing(x) ? <span className="small muted">{standing(x)}</span> : null}
                 </>
               ) : <>
               <Bar c={c} />
@@ -153,7 +146,7 @@ export function Epics({ b, file, open, sel, pick: choose, zoom, under = false }:
           {st.about ? <div className="small muted">{st.about}</div> : null}
           {st.left ? (
             <div className="ep-list ep-leftlist">
-              <span className="lab">{st.left.count ? `Left — ${st.left.count}` : "Nothing left"} · {counts(live(st.epic!.tasks)).done} tasks done{standing(st) ? ` · ${standing(st)}` : ""}</span>
+              <span className="lab">{st.left.count ? `Left — ${st.left.count}` : "Nothing left"} · {counts(live(st.epic!.tasks)).done} tasks done</span>
               {st.epic!.tasks.filter((t) => st.left!.tasks.includes(t.key)).map((t) => <Row key={t.key} t={t} open={open} />)}
               {(b.backlog ?? []).filter((x) => st.left!.backlog.includes(x.num)).map((x) => <div key={x.num} className="ep-bl"><code>{x.num}</code><span>{x.text}</span></div>)}
               {st.left.assets.map((a) => <div key={a.kind} className="ep-bl"><code>{a.kind}</code><span>{assetLine(a)}</span></div>)}
