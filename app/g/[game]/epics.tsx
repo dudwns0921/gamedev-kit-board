@@ -125,7 +125,8 @@ export function Epics({ b, file, open, sel, pick: choose, zoom, under = false }:
               {x.about ? <span className="small muted">{x.about}</span> : null}
               {x.left ? (
                 <>
-                  <div className={`ep-left${x.left.count ? "" : " done"}`}>{x.left.count ? <><b>{x.left.count}</b> left</> : <b>✓ Done</b>}</div>
+                  <div className={`ep-left${x.left.count ? "" : " done"}`}>{x.left.count ? <><b>{x.left.count}</b> left</> : <b>✓ Done</b>}
+                    <span className="ep-did">{c.done} task{c.done === 1 ? "" : "s"} done</span></div>
                   {standing(x) ? <span className="small muted">{standing(x)}</span> : null}
                 </>
               ) : <>
@@ -153,7 +154,7 @@ export function Epics({ b, file, open, sel, pick: choose, zoom, under = false }:
           {st.about ? <div className="small muted">{st.about}</div> : null}
           {st.left ? (
             <div className="ep-list ep-leftlist">
-              <span className="lab">{st.left.count ? `Left — ${st.left.count}` : "Nothing left"}{standing(st) ? ` · ${standing(st)}` : ""}</span>
+              <span className="lab">{st.left.count ? `Left — ${st.left.count}` : "Nothing left"} · {counts(live(st.epic!.tasks)).done} tasks done{standing(st) ? ` · ${standing(st)}` : ""}</span>
               {st.epic!.tasks.filter((t) => st.left!.tasks.includes(t.key)).map((t) => <Row key={t.key} t={t} open={open} />)}
               {(b.backlog ?? []).filter((x) => st.left!.backlog.includes(x.num)).map((x) => <div key={x.num} className="ep-bl"><code>{x.num}</code><span>{x.text}</span></div>)}
               {st.left.assets.map((a) => <div key={a.kind} className="ep-bl"><code>{a.kind}</code><span>{assetLine(a)}</span></div>)}

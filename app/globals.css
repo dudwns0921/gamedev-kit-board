@@ -406,7 +406,9 @@ table.tbl.parts2 td.pc { width: 200px; }
 .ep-cycles button.on { border-color: var(--accent); background: var(--accent-soft); }
 .ep-cycles button.on b { color: var(--accent); }
 .ep-list { display: flex; flex-direction: column; }
-.ep-left { font-size: 13px; color: var(--tx2); margin-top: 6px; } .ep-left b { font: 700 28px/1.1 var(--mono); color: var(--tx); margin-right: 4px; }
+.ep-left { font-size: 13px; color: var(--tx2); margin-top: 6px; display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 4px; }
+.ep-left b { font: 700 28px/1.1 var(--mono); color: var(--bad); }
+.ep-did { margin-left: 10px; color: var(--tx3); font-size: 12.5px; }
 .ep-left.done b { font-size: 18px; color: var(--done); }
 .ep-leftlist { margin: 10px 0 18px; } .ep-history { display: block; margin-top: 6px; }
 .ep-list > .lab { margin-bottom: 4px; }
