@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useState, type ReactNode } from "react";
-import type { Active, BacklogItem, Board, EpicTask, Stage, TaskDetail } from "@/lib/board";
+import type { Active, BacklogItem, Board, EpicTask, LeftAssets, Stage, TaskDetail } from "@/lib/board";
 import { runOf } from "./plays";
 
 // The game laid out as epics: each stage of play is one (and Foundation, for what no stage owns), holding the tasks of every cycle and playtest that name it.
@@ -69,6 +69,17 @@ export function Row({ t, open, epic }: { t: EpicTask | { key: string; kind: stri
   );
 }
 
+/** One kind of asset not final, in words: "Art — 74 placeholders · 13 not made". */
+const assetLine = (a: LeftAssets) => `${a.label} — ` + [[a.temp, "placeholder", "placeholders"], [a.none, "not made", "not made"], [a.bad, "with a problem", "with a problem"]]
+  .filter(([n]) => n).map(([n, one, many]) => `${n} ${n === 1 ? one : many}`).join(" · ");
+
+/** Where an epic stands, in one line under its count: the cycles that have its tasks in hand, what is blocked, what is undecided. */
+const standing = (st: Stage) => {
+  const l = st.left!;
+  return [l.cycles.length ? `In ${l.cycles.map((c) => `C${c}`).join(" · ")}` : "", l.blocked ? `${l.blocked} blocked` : "", st.open.length ? `${st.open.length} undecided` : ""]
+    .filter(Boolean).join(" · ");
+};
+
 const waiting = (b: Board, st: Stage) => (b.backlog ?? []).filter((x) => x.mark === " " && x.stage === st.i);
 
 export function Epics({ b, file, open, sel, pick: choose, zoom, under = false }: {
@@ -112,6 +123,12 @@ export function Epics({ b, file, open, sel, pick: choose, zoom, under = false }:
               <span className="lab">{x.foundation ? "Foundation" : x.common ? "To sort" : "Epic"}{x.loop ? " · loop" : ""}</span>
               <h2>{x.name}</h2>
               {x.about ? <span className="small muted">{x.about}</span> : null}
+              {x.left ? (
+                <>
+                  <div className={`ep-left${x.left.count ? "" : " done"}`}>{x.left.count ? <><b>{x.left.count}</b> left</> : <b>✓ Done</b>}</div>
+                  {standing(x) ? <span className="small muted">{standing(x)}</span> : null}
+                </>
+              ) : <>
               <Bar c={c} />
               <Counts c={c} />
               {x.halves && (x.halves.function !== null || x.halves.assets !== null) ? (
@@ -120,6 +137,7 @@ export function Epics({ b, file, open, sel, pick: choose, zoom, under = false }:
               {queued || x.open.length ? (
                 <div className="chips">{queued ? <span className="chip warn">backlog {queued}</span> : null}{x.open.length ? <span className="chip bad">{x.open.length} undecided</span> : null}</div>
               ) : null}
+              </>}
             </button>
           );
         })}
@@ -133,7 +151,15 @@ export function Epics({ b, file, open, sel, pick: choose, zoom, under = false }:
           <div className="ep-body">
           <h2>{st.name}</h2>
           {st.about ? <div className="small muted">{st.about}</div> : null}
-          <Counts c={counts(live(st.epic!.tasks))} />
+          {st.left ? (
+            <div className="ep-list ep-leftlist">
+              <span className="lab">{st.left.count ? `Left — ${st.left.count}` : "Nothing left"}{standing(st) ? ` · ${standing(st)}` : ""}</span>
+              {st.epic!.tasks.filter((t) => st.left!.tasks.includes(t.key)).map((t) => <Row key={t.key} t={t} open={open} />)}
+              {(b.backlog ?? []).filter((x) => st.left!.backlog.includes(x.num)).map((x) => <div key={x.num} className="ep-bl"><code>{x.num}</code><span>{x.text}</span></div>)}
+              {st.left.assets.map((a) => <div key={a.kind} className="ep-bl"><code>{a.kind}</code><span>{assetLine(a)}</span></div>)}
+            </div>
+          ) : <Counts c={counts(live(st.epic!.tasks))} />}
+          {st.left && groups.length ? <span className="lab ep-history">History</span> : null}
           {groups.length ? (
             <div className="ep-cycles" role="group" aria-label="Cycles">
               {groups.map((g) => {

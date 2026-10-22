@@ -39,6 +39,9 @@ export type Stage = {
   foundation?: boolean;
   /** Each stage is an epic: its tasks across every cycle and playtest, their counts, and its backlog lines (B numbers) */
   epic?: { tasks: EpicTask[]; counts: { done: number; doing: number; open: number; blocked: number }; backlog: string[] };
+  /** What is left before the epic is done, one line each (the kit's `left`): its tasks not done, its backlog lines, and one line per kind of asset
+   *  not final — counted, never a %: a task is not a size. cycles: the cycles with its tasks in hand. Absent on a board from an older kit. */
+  left?: { count: number; tasks: string[]; backlog: string[]; assets: LeftAssets[]; cycles: string[]; blocked: number };
   loop: boolean;
   complete: number | null;
   image: string;
@@ -52,6 +55,9 @@ export type Stage = {
   open: Ask[];
   work: { cycle: string; name: string; stage: string; tasks: { num: string; title: string; mark: string; did: string }[] }[];
 };
+
+/** One kind of asset not final in an epic: how many are placeholders, not made yet, or marked as a problem. */
+export type LeftAssets = { kind: string; label: string; temp: number; none: number; bad: number };
 
 /** An open question. One from a cycle names its decision — the dashboard can send "not needed" for it (key: the review card's key). */
 export type Ask = { title: string; text: string; from: string; decision?: { doc: string; num: string; key?: string } };
