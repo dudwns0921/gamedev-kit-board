@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import type { Active, BacklogItem, Board, EpicTask, LeftAssets, Stage, TaskDetail } from "@/lib/board";
 import { runOf } from "./plays";
 
@@ -11,6 +12,14 @@ import { runOf } from "./plays";
 // A task opens in a panel from the right, with the lines written under it; which of those the panel shows is the viewer's choice, kept in this browser.
 
 export type OpenTask = (key: string) => void;
+
+/** A panel and its scrim, drawn at the page's root — never inside the scrolling body. On iOS a scroller holds what is fixed inside it:
+ *  the scrim would not cover the bar above, and the bar would take the taps meant for the panel. */
+export function Layer({ children }: { children: ReactNode }) {
+  const [here, setHere] = useState(false);
+  useEffect(() => setHere(true), []);
+  return here ? createPortal(children, document.body) : null;
+}
 
 const MARK: Record<string, [string, string]> = { x: ["done", "Done"], ">": ["doing", "In hand"], " ": ["open", "To do"], "!": ["blocked", "Blocked"], "-": ["dropped", "Dropped"] };
 
@@ -136,7 +145,7 @@ export function Epics({ b, file, open, sel, pick: choose, zoom, under = false }:
         })}
       </div>
       {st ? (
-        <>
+        <Layer>
         <div className="ep-scrim ep-under" onClick={() => setSel(null)} />
         <aside className="ep-panel ep-epic" role="dialog" aria-label={st.name}>
           <div className="ep-top"><span className="lab">{st.foundation ? "Foundation" : st.common ? "To sort" : "Epic"}</span>
@@ -175,7 +184,7 @@ export function Epics({ b, file, open, sel, pick: choose, zoom, under = false }:
           </>}
           </div>
         </aside>
-        </>
+        </Layer>
       ) : null}
     </>
   );
@@ -281,7 +290,7 @@ export function TaskPanel({ b, k, close, show }: { b: Board; k: string; close: (
   const ids = [...new Set(field("GDD").match(/[A-Z]+(?:\.[A-Z0-9_]+)+/g) ?? [])];
   const after = t.mark === "x" ? runOf(b, t.kind, t.cycle, t.doc) : undefined;  // the screens after the build it was done in — in the Play tab
   return (
-    <>
+    <Layer>
       <div className="ep-scrim" onClick={close} />
       <aside className="ep-panel" role="dialog" aria-label={k}>
         <div className="ep-top"><code>{k}</code><span className="lab">{st?.name ?? "No epic"}</span><button className="btn ghost" onClick={close} aria-label="Close">×</button></div>
@@ -301,6 +310,6 @@ export function TaskPanel({ b, k, close, show }: { b: Board; k: string; close: (
           {ids.length ? <div className="ep-sec"><span className="lab">GDD</span><div className="chips">{ids.map((x) => <code key={x} className="tchip">{x}</code>)}</div></div> : null}
         </div>
       </aside>
-    </>
+    </Layer>
   );
 }
