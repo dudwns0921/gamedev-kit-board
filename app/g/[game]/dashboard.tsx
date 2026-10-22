@@ -9,11 +9,12 @@ import { SessionPill, SessionToasts } from "./session";
 import { Backlog, Epics, Sprint, TaskPanel, type OpenTask } from "./epics";
 import { Plays, type PlayAt } from "./plays";
 import { Now } from "./now";
+import { Bible } from "./bible";
 
 // One game, drawn from the data the kit sends. The page holds one connection (/g/<game>/events) and is told the moment a newer board
 // arrives or the game's inbox changes — it redraws in place, the open tab and stage stay. Nothing asks on a clock.
 // "Refresh" reads both once more and reconnects — for when the connection dropped (a sleeping laptop, a phone on the tunnel).
-const TABS = ["now", "epics", "cycle", "play", "backlog", "review", "assets"] as const;
+const TABS = ["now", "epics", "cycle", "play", "bible", "backlog", "review", "assets"] as const;
 const WAS: Record<string, Tab> = { cycles: "cycle", overview: "epics", stages: "epics" };  // a link from before the tabs became epics · cycle · backlog
 type Tab = (typeof TABS)[number];
 const NONE: Inbox = { sent: [], taken: [], relayed: [], untaken: false };
@@ -170,6 +171,7 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
         {tab === "epics" ? <Epics b={b} file={file} open={openTask} sel={stage} pick={setStage} zoom={z} under={task !== null} /> : null}
         {tab === "cycle" ? <Sprint b={b} sel={cyc ?? b.cycles[b.cycles.length - 1]?.num ?? ""} pick={setCyc} open={openTask} waiting={counts.review} review={() => go("review")} hand={inHand(s)} /> : null}
         {tab === "play" ? <Plays b={b} file={file} zoom={z} at={playAt} pick={setPlayAt} /> : null}
+        {tab === "bible" ? <Bible b={b} file={file} zoom={z} /> : null}
         {tab === "backlog" ? <Backlog b={b} /> : null}
         {tab === "review" ? <ReviewTab game={s.game} box={box} items={b.review} file={file} zoom={z} run={run} /> : null}
         {tab === "assets" ? <Assets b={b} file={file} zoom={z} go={go} /> : null}
