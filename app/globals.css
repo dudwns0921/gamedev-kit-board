@@ -410,7 +410,7 @@ table.tbl.parts2 td.pc { width: 200px; }
 .ep-left b { font: 700 28px/1.1 var(--mono); color: var(--bad); }
 .ep-did { margin-left: 10px; color: var(--tx3); font-size: 12.5px; }
 .ep-left.done b { font-size: 18px; color: var(--done); }
-.ep-leftlist { margin: 10px 0 18px; } .ep-history { display: block; margin-top: 6px; }
+.ep-leftlist { margin: 10px 0 18px; }
 .ep-list > .lab { margin-bottom: 4px; }
 .ep-row { display: flex; gap: 10px; align-items: flex-start; width: 100%; text-align: left; padding: 8px 6px; border: 0; border-top: 1px solid var(--border); background: none; border-radius: 0; cursor: pointer; min-width: 0; }
 .ep-list > .lab + .ep-row { border-top: 0; }

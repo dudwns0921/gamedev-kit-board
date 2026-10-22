@@ -5,7 +5,7 @@ import type { Active, BacklogItem, Board, EpicTask, LeftAssets, Stage, TaskDetai
 import { runOf } from "./plays";
 
 // The game laid out as epics: each stage of play is one (and Foundation, for what no stage owns), holding the tasks of every cycle and playtest that name it.
-// The epic cards, words only; the chosen one opens in a panel from the right, as a task does — its cycles in one row, and what is picked below it.
+// The epic cards, words only — what is left before each is done; the chosen one opens in a panel from the right, as a task does, listing what is left.
 // A task picked there opens in its own panel over it; closing that goes back to the epic.
 // Screens of the game are in the Play tab only (the play route's runs).
 // A task opens in a panel from the right, with the lines written under it; which of those the panel shows is the viewer's choice, kept in this browser.
@@ -160,7 +160,7 @@ export function Epics({ b, file, open, sel, pick: choose, zoom, under = false }:
               {st.left.assets.map((a) => <div key={a.kind} className="ep-bl"><code>{a.kind}</code><span>{assetLine(a)}</span></div>)}
             </div>
           ) : <Counts c={counts(live(st.epic!.tasks))} />}
-          {st.left && groups.length ? <span className="lab ep-history">History</span> : null}
+          {st.left ? null : <>{/* a board from an older kit: the epic's cycles, as before — with `left`, only the epic itself is shown */}
           {groups.length ? (
             <div className="ep-cycles" role="group" aria-label="Cycles">
               {groups.map((g) => {
@@ -180,6 +180,7 @@ export function Epics({ b, file, open, sel, pick: choose, zoom, under = false }:
                 : pick.tasks!.map((t) => <Row key={t.key} t={t} open={open} />)}
             </div>
           ) : null}
+          </>}
           </div>
         </aside>
         </>
