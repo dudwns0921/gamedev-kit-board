@@ -445,6 +445,8 @@ table.tbl.parts2 td.pc { width: 200px; }
 .ep-col h3 { display: flex; justify-content: space-between; font-size: 13px; color: var(--tx2); margin-bottom: 4px; }
 .ep-col .ep-row:first-of-type { border-top: 0; }
 .ep-wait { align-self: flex-start; }
+.ep-cycles button small.ep-check { color: var(--accent); font-weight: 600; }
+.ep-checks { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13.5px; }
 @media (max-width: 860px) { .ep-board { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 520px) { .ep-board { grid-template-columns: minmax(0, 1fr); } }
 .ep-shots { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); }

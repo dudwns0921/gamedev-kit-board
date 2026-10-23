@@ -193,13 +193,19 @@ export function Epics({ b, file, open, sel, pick: choose, zoom, under = false }:
 const STEPS = ["Goal", "Spec", "Design", "Plan", "Build", "Play"];
 const COLUMNS: [string, string][] = [["To do", " "], ["In hand", ">"], ["Blocked", "!"], ["Done", "x"]];
 
-/** One cycle as a board: its goal and where it stands on top, its tasks in four columns. Any cycle can be picked from the row above it. */
-export function Sprint({ b, sel, pick, open, waiting, review, hand = [] }: {
-  b: Board; sel: string; pick: (c: string) => void; open: OpenTask; waiting: number; review: () => void; hand?: Active[];
+/** One cycle as a board: its goal and where it stands on top, its tasks in four columns. Any cycle can be picked from the row above it,
+ *  and the row can be narrowed to the cycles at one stage — at Play, the ones waiting to be played, each with what to check. */
+export function Sprint({ b, sel, pick, at: only, show, open, waiting, review, hand = [] }: {
+  b: Board; sel: string; pick: (c: string) => void; at: string | null; show: (stage: string | null) => void; open: OpenTask; waiting: number; review: () => void; hand?: Active[];
 }) {
-  const c = b.cycles.find((x) => x.num === sel) ?? b.cycles[b.cycles.length - 1];
-  if (!c) return <div className="empty">No cycle yet — <code>/gamedev-kit:cycle</code> starts one.</div>;
   const steps = b.steps ?? STEPS;
+  const checks = (n: string) => b.review.filter((i) => i.kind === "check" && !i.later && i.cycle === n);
+  // a stage no cycle stands at gets no chip; a stage the kit does not know (an older one) still does, after the known ones
+  const here = [...steps, "Closed"].filter((k) => b.cycles.some((x) => x.stage === k));
+  const chips = [...here, ...new Set(b.cycles.map((x) => x.stage).filter((k) => !here.includes(k)))];
+  const shown = only && chips.includes(only) ? b.cycles.filter((x) => x.stage === only) : b.cycles;
+  const c = shown.find((x) => x.num === sel) ?? shown[shown.length - 1];
+  if (!c) return <div className="empty">No cycle yet — <code>/gamedev-kit:cycle</code> starts one.</div>;
   const at = steps.indexOf(c.stage);
   const list = (c.list ?? []).filter((t) => t.mark !== "-");
   const name = (t: { epic?: string; stages?: number[] }) => t.epic || "";
@@ -207,12 +213,28 @@ export function Sprint({ b, sel, pick, open, waiting, review, hand = [] }: {
   const several = hand.length > 1;  // several sessions at once, each on its own cycle — each in hand is marked, and says what of it waits
   const mine = hand.find((h) => h.cycle === c.num);
   const wait = several ? mine?.review ?? 0 : newest ? waiting : 0;
+  const toCheck = c.stage === "Play" ? checks(c.num) : [];
+  const playing = b.cycles.filter((x) => x.stage === "Play").reduce((n, x) => n + checks(x.num).length, 0);
   return (
     <>
+      {chips.length > 1 ? (
+        <div className="filters" role="group" aria-label="Cycles at a stage">
+          {[null, ...chips].map((k) => {
+            const on = (only && chips.includes(only) ? only : null) === k;
+            return (
+              <button key={k ?? "all"} className={on ? "on" : ""} aria-pressed={on} onClick={() => show(k)}>
+                {k ?? "All"} {k ? b.cycles.filter((x) => x.stage === k).length : b.cycles.length}
+                {k === "Play" && playing ? ` · ${playing} to check` : ""}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
       <div className="ep-cycles" role="group" aria-label="Cycles">
-        {[...b.cycles].reverse().map((x) => (
+        {[...shown].reverse().map((x) => (
           <button key={x.num} className={x.num === c.num ? "on" : ""} aria-pressed={x.num === c.num} onClick={() => pick(x.num)}>
             <b>Cycle {x.num}</b><small>{x.stage} · {x.tasks.done}/{x.tasks.done + x.tasks.open + x.tasks.blocked + (x.tasks.doing ?? 0)}</small>
+            {x.stage === "Play" && checks(x.num).length ? <small className="ep-check">{checks(x.num).length} to check</small> : null}
             {several && hand.some((h) => h.cycle === x.num)
               ? <small>{hand.find((h) => h.cycle === x.num)?.building ? "in hand · building" : "in hand"}</small> : null}
           </button>
@@ -231,6 +253,17 @@ export function Sprint({ b, sel, pick, open, waiting, review, hand = [] }: {
         <Counts c={counts(list)} />
         {wait ? <button className="btn primary ep-wait" onClick={review}>{wait} waiting on you — Review →</button> : null}
       </section>
+      {c.stage === "Play" ? (
+        <section className="card sec">
+          <div className="sec-h"><h3>Check by playing</h3><span className="lab">{toCheck.length}</span></div>
+          {toCheck.length ? (
+            <>
+              <ul className="ep-checks">{toCheck.map((i) => <li key={i.key}>{i.title}</li>)}</ul>
+              <button className="btn ep-wait" onClick={review}>Answer OK or Problem — Review →</button>
+            </>
+          ) : <span className="small muted">Nothing left to check — every check is answered, or none was written for this cycle.</span>}
+        </section>
+      ) : null}
       <div className="ep-board">
         {COLUMNS.map(([label, m]) => {
           const here = list.filter((t) => t.mark === m);

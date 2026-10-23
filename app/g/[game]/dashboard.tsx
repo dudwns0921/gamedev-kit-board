@@ -29,6 +29,7 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
   const [tab, setTab] = useState<Tab>((TABS as readonly string[]).includes(firstTab) ? (firstTab as Tab) : WAS[firstTab] ?? "now");
   const [stage, setStage] = useState<number | null>(null);
   const [cyc, setCyc] = useState<string | null>(null);  // the cycle open in the Cycle tab — the newest when none was picked
+  const [cycAt, setCycAt] = useState<string | null>(null);  // the stage the Cycle tab's row is narrowed to — all when none
   const [zoom, setZoom] = useState<{ src: string; label: string } | null>(null);
   const [task, setTask] = useState<string | null>(null);  // the task open in the side panel, by its key
   const [playAt, setPlayAt] = useState<PlayAt>({ run: null, stage: null });  // the run open in the Play tab (the newest when none was picked), and a stage to show
@@ -117,7 +118,7 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
 
   function go(t: Tab, st: number | null = null, cy?: string) {
     setTab(t);
-    if (cy) setCyc(cy);
+    if (cy) { setCyc(cy); setCycAt(null); }  // a cycle opened from elsewhere is shown whatever stage the row was narrowed to
     if (st !== null) setStage(st);
     const u = new URL(location.href);
     u.searchParams.set("tab", t);
@@ -169,7 +170,7 @@ export default function Dashboard({ first, tab: firstTab }: { first: Summary; ta
 
         {tab === "now" ? <Now s={s} b={b} open={openTask} review={() => go("review")} cycle={(n) => go("cycle", null, n)} /> : null}
         {tab === "epics" ? <Epics b={b} file={file} open={openTask} sel={stage} pick={setStage} zoom={z} under={task !== null} /> : null}
-        {tab === "cycle" ? <Sprint b={b} sel={cyc ?? b.cycles[b.cycles.length - 1]?.num ?? ""} pick={setCyc} open={openTask} waiting={counts.review} review={() => go("review")} hand={inHand(s)} /> : null}
+        {tab === "cycle" ? <Sprint b={b} sel={cyc ?? b.cycles[b.cycles.length - 1]?.num ?? ""} pick={setCyc} at={cycAt} show={(k) => { setCycAt(k); setCyc(null); }} open={openTask} waiting={counts.review} review={() => go("review")} hand={inHand(s)} /> : null}
         {tab === "play" ? <Plays b={b} file={file} zoom={z} at={playAt} pick={setPlayAt} /> : null}
         {tab === "bible" ? <Bible b={b} file={file} zoom={z} /> : null}
         {tab === "backlog" ? <Backlog b={b} /> : null}

@@ -108,6 +108,7 @@ export default function ReviewTab({ game, box, items, file, zoom, run }: {
                     {where ? <span className={`state ${where}`}>{where === "sent" ? "Sent — waiting for the session" : "The session is on it"}</span> : null}
                     {!where && i.later ? <span className="state later">Waiting — a later cycle: {i.later}</span> : null}
                     {i.kind === "decision" ? <span className="lab">{[i.latest === false ? `cycle ${i.cycle}` : "", i.who, i.proxy ? "decided for you" : ""].filter(Boolean).join(" · ")}</span> : null}
+                    {i.kind === "check" && i.cycle ? <span className="lab">cycle {i.cycle} · play its build</span> : null}
                     {i.kind === "todo" ? <span className="lab">{[i.latest === false ? `cycle ${i.cycle}` : "", "outside the chat"].filter(Boolean).join(" · ")}</span> : null}
                     <h3>{i.kind === "decision" || i.kind === "todo" ? <code>{i.ref}</code> : null}{i.title}</h3>
                     {i.kind === "question" && i.text ? <div className="small muted">{i.text}</div> : null}
