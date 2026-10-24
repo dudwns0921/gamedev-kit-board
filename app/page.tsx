@@ -67,7 +67,7 @@ export default async function Home() {
           <>
             <div className="kpis">
               <div className="card kpi"><span className="lab">Games</span><b>{all.length}</b></div>
-              <div className={`card kpi${sum("review") ? " alert" : ""}`}><span className="lab">Waiting on you</span><b>{sum("review")}</b><small>to-dos, decisions, questions, checks</small></div>
+              <div className={`card kpi${sum("review") ? " alert" : ""}`}><span className="lab">Waiting on you</span><b>{sum("review")}</b><small>to-dos, decisions, questions, what to judge</small></div>
               <div className={`card kpi${sum("problems") ? " alert" : ""}`}><span className="lab">Problems</span><b>{sum("problems")}</b></div>
             </div>
             {waiting.length ? (

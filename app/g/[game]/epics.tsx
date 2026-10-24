@@ -224,7 +224,7 @@ export function Sprint({ b, sel, pick, at: only, show, open, waiting, review, ha
             return (
               <button key={k ?? "all"} className={on ? "on" : ""} aria-pressed={on} onClick={() => show(k)}>
                 {k ?? "All"} {k ? b.cycles.filter((x) => x.stage === k).length : b.cycles.length}
-                {k === "Play" && playing ? ` · ${playing} to check` : ""}
+                {k === "Play" && playing ? ` · ${playing} to judge` : ""}
               </button>
             );
           })}
@@ -234,7 +234,7 @@ export function Sprint({ b, sel, pick, at: only, show, open, waiting, review, ha
         {[...shown].reverse().map((x) => (
           <button key={x.num} className={x.num === c.num ? "on" : ""} aria-pressed={x.num === c.num} onClick={() => pick(x.num)}>
             <b>Cycle {x.num}</b><small>{x.stage} · {x.tasks.done}/{x.tasks.done + x.tasks.open + x.tasks.blocked + (x.tasks.doing ?? 0)}</small>
-            {x.stage === "Play" && checks(x.num).length ? <small className="ep-check">{checks(x.num).length} to check</small> : null}
+            {x.stage === "Play" && checks(x.num).length ? <small className="ep-check">{checks(x.num).length} to judge</small> : null}
             {several && hand.some((h) => h.cycle === x.num)
               ? <small>{hand.find((h) => h.cycle === x.num)?.building ? "in hand · building" : "in hand"}</small> : null}
           </button>
@@ -255,13 +255,13 @@ export function Sprint({ b, sel, pick, at: only, show, open, waiting, review, ha
       </section>
       {c.stage === "Play" ? (
         <section className="card sec">
-          <div className="sec-h"><h3>Check by playing</h3><span className="lab">{toCheck.length}</span></div>
+          <div className="sec-h"><h3>For you to judge</h3><span className="lab">{toCheck.length}</span></div>
           {toCheck.length ? (
             <>
               <ul className="ep-checks">{toCheck.map((i) => <li key={i.key}>{i.title}</li>)}</ul>
               <button className="btn ep-wait" onClick={review}>Answer OK or Problem — Review →</button>
             </>
-          ) : <span className="small muted">Nothing left to check — every check is answered, or none was written for this cycle.</span>}
+          ) : <span className="small muted">Nothing waits on you — the build verified itself; the cycle closes once no decision of it is open.</span>}
         </section>
       ) : null}
       <div className="ep-board">

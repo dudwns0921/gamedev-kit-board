@@ -81,7 +81,7 @@ export type Review = (
   | { kind: "todo"; key: string; ref: string; title: string; cycle: string; doc?: string; latest?: boolean; pictures: Picture[];
       why?: string; detail?: string; wait?: string }  // something only the user can do outside the chat · its steps · what to copy · the file that closes it
   | { kind: "question"; key: string; ref: string; title: string; text: string }
-  | { kind: "check"; key: string; ref: string; title: string; cycle: string; doc?: string; latest?: boolean; detail?: string }  // detail: a tuning hint an older document wrote after the question · every cycle at Play sends its own
+  | { kind: "check"; key: string; ref: string; title: string; cycle: string; doc?: string; latest?: boolean; detail?: string }  // the one thing of a built cycle only a person can judge — one per cycle at most · detail: a tuning hint an older document wrote after the question
 ) & { later?: string };  // put off to a later cycle by the session — waiting, not in hand
 
 /** Where an asset is used: the stage of play it was placed in, and the code files that name it (an engine that points at files by id finds none). */

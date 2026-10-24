@@ -22,7 +22,8 @@ const GROUPS: { id: string; title: string; hit: (i: Review) => boolean; hint?: s
   { id: "earlier", title: "Decisions left in earlier cycles", hit: (i) => i.kind === "decision" && i.latest === false,
     hint: "Still open from cycles that have moved on. Answer, or mark not needed." },
   { id: "gdd", title: "Open questions in the GDD", hit: (i) => i.kind === "question", hint: "Write the answer in the note — the session puts it in the GDD." },
-  { id: "check", title: "Check by playing", hit: (i) => i.kind === "check" },
+  { id: "check", title: "For you to judge", hit: (i) => i.kind === "check",
+    hint: "One per built cycle at most — what only a person can judge. Everything else the build verified itself." },
 ];
 
 function choices(i: Review): { pick: string; text: string; mark?: string; tag?: string; no?: boolean }[] {
@@ -77,7 +78,7 @@ export default function ReviewTab({ game, box, items, file, zoom, run }: {
     }
   }
 
-  if (!items.length) return <><div className="empty">Nothing waits on you. New decisions, questions and checks show up here as the game&apos;s session raises them.</div></>;
+  if (!items.length) return <><div className="empty">Nothing waits on you. New decisions, questions and the one thing per cycle to judge show up here as the game&apos;s session raises them.</div></>;
 
   return (
     <>
@@ -108,7 +109,7 @@ export default function ReviewTab({ game, box, items, file, zoom, run }: {
                     {where ? <span className={`state ${where}`}>{where === "sent" ? "Sent — waiting for the session" : "The session is on it"}</span> : null}
                     {!where && i.later ? <span className="state later">Waiting — a later cycle: {i.later}</span> : null}
                     {i.kind === "decision" ? <span className="lab">{[i.latest === false ? `cycle ${i.cycle}` : "", i.who, i.proxy ? "decided for you" : ""].filter(Boolean).join(" · ")}</span> : null}
-                    {i.kind === "check" && i.cycle ? <span className="lab">cycle {i.cycle} · play its build</span> : null}
+                    {i.kind === "check" && i.cycle ? <span className="lab">cycle {i.cycle} · judge it on its build</span> : null}
                     {i.kind === "todo" ? <span className="lab">{[i.latest === false ? `cycle ${i.cycle}` : "", "outside the chat"].filter(Boolean).join(" · ")}</span> : null}
                     <h3>{i.kind === "decision" || i.kind === "todo" ? <code>{i.ref}</code> : null}{i.title}</h3>
                     {i.kind === "question" && i.text ? <div className="small muted">{i.text}</div> : null}
